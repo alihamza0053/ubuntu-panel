@@ -28,7 +28,7 @@ system dependencies that both paths need.
 2. [Install ALL system dependencies (from zero)](#2-install-all-system-dependencies-from-zero)
 3. [Path A — Automated install](#3-path-a--automated-install)
 4. [Path B — Manual install (every step)](#4-path-b--manual-install-every-step)
-5. [DNS + SSL](#5-dns--ssl)
+5. [DNS + SSL](#5-dns--ssl) — including [no domain? run on the IP](#50--no-domain-run-on-the-ip-address)
 6. [Verify every feature works](#6-verify-every-feature-works)
 7. [Day-to-day management](#7-day-to-day-management)
 8. [Updating to a new version](#8-updating-to-a-new-version)
@@ -584,6 +584,107 @@ Continue to DNS + SSL.
 ---
 
 ## 5. DNS + SSL
+
+### 5.0 — No domain? Run on the IP address
+
+**You don't need a domain to use the panel.** Out of the box the nginx site
+ships with `server_name _;` and `default_server`, which means it answers any
+request that doesn't match another site — including a plain IP request. So
+right after install:
+
+```
+http://YOUR_SERVER_IP
+```
+
+Find your IP with:
+
+```bash
+curl -4 ifconfig.me
+```
+
+**If it doesn't load,** you're on a config from an older install that still has
+a hardcoded domain. Replace it:
+
+```bash
+sudo tee /etc/nginx/sites-available/serverhub >/dev/null <<'CONF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    client_max_body_size 200M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8765;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+CONF
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Still nothing? Work through these in order:
+
+| Check | Command | Expected |
+|---|---|---|
+| Panel process is up | `sudo supervisorctl status serverhub` | `RUNNING` |
+| Panel answers locally | `curl -I http://127.0.0.1:8765` | `HTTP/1.1 200` |
+| Nginx is listening on 80 | `sudo ss -tlnp \| grep :80` | a line for `nginx` |
+| Firewall allows 80 | `sudo ufw status` | `80/tcp ALLOW` |
+| No other default site | `ls /etc/nginx/sites-enabled/` | no `default` |
+
+If `curl -I http://127.0.0.1:8765` works but the IP doesn't, the problem is
+nginx or the firewall, not the panel. Also check your **provider's** firewall
+(DigitalOcean/AWS/Oracle security groups) — that's separate from `ufw` and is
+the usual culprit on Oracle Cloud and AWS.
+
+> #### ⚠️ Read this before using IP-only access for real work
+>
+> On plain HTTP, **your login password and session token cross the network in
+> cleartext.** Anyone able to observe the traffic — other users on your WiFi, a
+> hostile network operator, your hosting provider's network — can read them and
+> take over the panel. The panel gives full shell access to the server, so that
+> is a total compromise, not a minor leak.
+>
+> IP-only over HTTP is fine for a quick trial or a private/LAN network. Before
+> putting anything real on it, pick one of these:
+>
+> **Best — a free domain + free certificate.** A subdomain from
+> [DuckDNS](https://www.duckdns.org) or [No-IP](https://www.noip.com) costs
+> nothing, and Certbot then issues a real certificate. Point it at your IP and
+> follow 5.1–5.3 exactly as written. This takes about five minutes and is the
+> only option that gives you real, warning-free HTTPS.
+>
+> **Or — restrict who can reach it.** Keep HTTP, but let only your own IP in:
+>
+> ```bash
+> sudo ufw delete allow 80/tcp
+> sudo ufw allow from YOUR_HOME_IP to any port 80 proto tcp
+> ```
+>
+> Traffic is still unencrypted, but no longer exposed to the whole internet.
+>
+> **Or — don't expose it at all; tunnel over SSH.** Close port 80 entirely and
+> forward the panel to your own machine:
+>
+> ```bash
+> ssh -L 8765:127.0.0.1:8765 root@YOUR_SERVER_IP
+> ```
+>
+> Then browse `http://localhost:8765`. SSH encrypts everything and nothing is
+> published to the internet. This is the most secure option and needs no domain.
+>
+> A self-signed certificate is **not** a good middle ground here: browsers throw
+> a full-page warning that trains you to click through exactly the warning that
+> would signal a real attack.
 
 ### 5.1 — Point your domain at the server (DNS)
 

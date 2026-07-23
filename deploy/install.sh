@@ -130,15 +130,32 @@ ln -sf /etc/nginx/sites-available/serverhub /etc/nginx/sites-enabled/serverhub
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
+# Public IP, for the "open it here" hint below. Falls back to a placeholder
+# when the box has no outbound access.
+PUBLIC_IP="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null \
+  || curl -fsS --max-time 5 https://icanhazip.com 2>/dev/null \
+  || echo YOUR_SERVER_IP)"
+
 echo
 echo "============================================================"
 echo " ServerHub installed."
 echo
 echo " 1. Create your admin user:"
 echo "      cd $PANEL_ROOT/backend && sudo -u $PANEL_USER $PANEL_ROOT/venv/bin/python setup_admin.py"
-echo " 2. Edit /etc/nginx/sites-available/serverhub and set your"
-echo "    panel domain, then: sudo nginx -t && sudo systemctl reload nginx"
-echo " 3. (Optional) SSL: sudo certbot --nginx -d panel.yourdomain.com"
 echo
-echo " Panel API:  http://127.0.0.1:8765"
+echo " 2. Open the panel — it already answers on this server's IP:"
+echo "      http://$PUBLIC_IP"
+echo "    No domain or DNS needed."
+echo
+echo " 3. (Recommended) Add a domain + free HTTPS:"
+echo "      - point an A record at $PUBLIC_IP"
+echo "      - set 'server_name your.domain;' in /etc/nginx/sites-available/serverhub"
+echo "      - sudo nginx -t && sudo systemctl reload nginx"
+echo "      - sudo certbot --nginx -d your.domain"
+echo
+echo " ⚠  Until you add HTTPS, your password and session token travel in"
+echo "    cleartext. See DEPLOYMENT.md section 5.0 for how to lock down"
+echo "    IP-only access in the meantime."
+echo
+echo " Panel API (internal):  http://127.0.0.1:8765"
 echo "============================================================"

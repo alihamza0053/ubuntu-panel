@@ -28,8 +28,13 @@ nginx, supervisor, MySQL, PHP, Certbot, Google Chrome, Node, the Python venv and
 all pip packages — and builds the frontend. It's idempotent: **re-run the same
 command later to update the panel in place.**
 
-When it finishes it prints the exact commands to create your admin user and
-point a domain at the panel.
+When it finishes it prints the exact commands to create your admin user.
+
+**No domain needed** — the panel answers on the server's IP straight away:
+`http://YOUR_SERVER_IP`. Adding a domain later gets you free HTTPS via Certbot.
+See [DEPLOYMENT.md § 5.0](DEPLOYMENT.md#50--no-domain-run-on-the-ip-address)
+for IP-only access, including how to avoid sending your password in cleartext
+before HTTPS is set up.
 
 > Prefer not to pipe the internet into a root shell unseen? Read it first:
 > `curl -fsSL .../deploy/get.sh -o get.sh; less get.sh; sudo bash get.sh`
