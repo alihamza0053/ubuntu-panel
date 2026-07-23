@@ -139,3 +139,8 @@ Configs live in `/srv/serverhub/supervisor.d/` (included from
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+Third-party components are listed in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The only bundled one is
+[SheetJS](https://sheetjs.com) (Apache-2.0), self-hosted at
+`frontend/public/vendor/` to power the in-browser spreadsheet viewer.
