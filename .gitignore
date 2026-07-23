@@ -1,0 +1,73 @@
+# ---------------------------------------------------------------
+# Private / never publish
+# ---------------------------------------------------------------
+# Local project scripts that live in this checkout on a real install.
+# These are user data, not part of ServerHub, and may hold credentials.
+code/
+
+# Local Claude Code settings (machine-specific paths)
+.claude/
+
+# ---------------------------------------------------------------
+# Secrets
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------------------------------------------------------------
+# Runtime state
+# ---------------------------------------------------------------
+# The panel database is created on first run by setup_admin.py
+db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Panel-generated supervisor programs
+supervisor.d/
+
+# ---------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# ---------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------
+node_modules/
+.vite/
+dist/
+
+# Vite builds into backend/static/ with emptyOutDir — the whole directory is
+# generated output (including vendor/, copied from frontend/public/).
+# deploy/install.sh and deploy/update.sh rebuild it.
+backend/static/
+
+# ---------------------------------------------------------------
+# Packaging
+# ---------------------------------------------------------------
+*.tar.gz
+*.zip
+
+# ---------------------------------------------------------------
+# OS / editor
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
