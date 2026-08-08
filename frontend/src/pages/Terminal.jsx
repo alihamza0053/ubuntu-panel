@@ -3,6 +3,38 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { useEffect, useRef, useState } from 'react'
 import { wsUrl } from '../api/ws'
+import PageHeader from '../components/PageHeader'
+
+// xterm palette matched to the panel: near-black ground, mint for success
+// tones, aqua for info, muted teal-grey for ordinary output.
+const XTERM_THEME = {
+  background: '#04090C',
+  foreground: '#A6C2C6',
+  cursor: '#3FE39B',
+  cursorAccent: '#04090C',
+  selectionBackground: 'rgba(63,227,155,0.28)',
+  black: '#0D1D25',
+  red: '#F87171',
+  green: '#3FE39B',
+  yellow: '#FBBF24',
+  blue: '#22E5CE',
+  magenta: '#C4B5FD',
+  cyan: '#7BF3C0',
+  white: '#CFE4E1',
+  brightBlack: '#5F7E89',
+  brightRed: '#FCA5A5',
+  brightGreen: '#7BF3C0',
+  brightYellow: '#FCD34D',
+  brightBlue: '#67F0E1',
+  brightMagenta: '#DDD6FE',
+  brightCyan: '#B6FBDC',
+  brightWhite: '#E7F5F1',
+}
+
+const STATUS_BADGE = {
+  connected: 'badge-mint',
+  connecting: 'badge-amber',
+}
 
 /**
  * Full interactive terminal backed by a server-side PTY over WebSocket.
@@ -18,8 +50,8 @@ export default function Terminal() {
   useEffect(() => {
     const term = new XTerm({
       fontSize: 13,
-      fontFamily: 'monospace',
-      theme: { background: '#000000', foreground: '#d1d5db' },
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      theme: XTERM_THEME,
       cursorBlink: true,
     })
     const fit = new FitAddon()
@@ -73,27 +105,26 @@ export default function Terminal() {
   }, [])
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
-      <div className="flex items-center gap-3">
-        <h2 className="text-2xl font-bold">Terminal</h2>
-        <span
-          className={`badge ${
-            status === 'connected'
-              ? 'bg-green-500/15 text-green-400'
-              : status === 'connecting'
-              ? 'bg-yellow-500/15 text-yellow-400'
-              : 'bg-red-500/15 text-red-400'
-          }`}
-        >
-          {status}
-        </span>
-        <span className="text-xs text-slate-500">
-          Full bash session — run any command (apt, pip, nano, top…)
-        </span>
-      </div>
+    <div className="flex h-full flex-col">
+      <PageHeader
+        title="Terminal"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Terminal' }]}
+        lead="Full bash session — run any command (apt, pip, nano, top…)."
+        badge={
+          <span className={`badge ${STATUS_BADGE[status] || 'badge-red'}`}>
+            <span className={status === 'connected' ? 'dot-pulse' : 'dot'} />
+            {status}
+          </span>
+        }
+      />
 
-      <div className="card flex-1 p-2" style={{ minHeight: '70vh' }}>
-        <div ref={containerRef} style={{ height: '70vh' }} />
+      <div className="log-pane flex-1" style={{ minHeight: '70vh' }}>
+        <div className="log-head">
+          <span className="flex items-center gap-2 font-mono text-ink-dim">/bin/bash</span>
+        </div>
+        <div className="bg-panel-ink p-3">
+          <div ref={containerRef} style={{ height: '70vh' }} />
+        </div>
       </div>
     </div>
   )

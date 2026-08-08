@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from './Icon'
 import ProgressBar from './ProgressBar'
 
 const LABELS = {} // filled from catalog
@@ -144,17 +145,21 @@ export default function Backups() {
   const last = backups[0]
 
   return (
-    <div className="card space-y-4">
-      <h3 className="font-semibold">Backup &amp; Restore</h3>
+    <div className="card space-y-5">
+      <h3 className="sec-title">Backup &amp; Restore</h3>
 
       {msg && (
-        <p className={`text-sm ${msg.error ? 'text-red-400' : 'text-green-400'}`}>{msg.text}</p>
+        <p className={`flex items-start gap-1.5 text-sm ${msg.error ? 'text-red-400' : 'text-mint-300'}`}>
+          <Icon name={msg.error ? 'alert' : 'check'} size={14} className="mt-0.5" />
+          {msg.text}
+        </p>
       )}
 
       {transfer && <ProgressBar dir={transfer.dir} name={transfer.name} pct={transfer.pct} />}
 
       {restarting && (
-        <p className="text-sm text-sky-300">
+        <p className="flex items-start gap-1.5 text-sm text-aqua">
+          <Icon name="refresh" size={14} className="mt-0.5" />
           Panel database restored — the panel is restarting. This page will
           reload automatically when it's back.
         </p>
@@ -162,26 +167,32 @@ export default function Backups() {
 
       {/* What to back up */}
       <div>
-        <p className="text-sm text-slate-400 mb-2">Choose what to include:</p>
-        <div className="grid sm:grid-cols-2 gap-2">
+        <p className="label">Choose what to include</p>
+        <div className="grid gap-1 sm:grid-cols-2">
           {catalog.map((c) => (
-            <label key={c.key} className="flex items-start gap-2 text-sm cursor-pointer">
-              <input type="checkbox" className="mt-1"
+            <label
+              key={c.key}
+              className="flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-1.5 text-sm
+                         transition-colors hover:bg-panel-raised/50"
+            >
+              <input type="checkbox" className="mt-0.5"
                 checked={!!sel[c.key]}
                 onChange={(e) => setSel({ ...sel, [c.key]: e.target.checked })} />
-              <span>
-                <span className="text-slate-200">{c.label}</span>
-                <span className="block text-xs text-slate-500">{c.desc}</span>
+              <span className="min-w-0">
+                <span className="text-ink-secondary">{c.label}</span>
+                <span className="block text-xs text-ink-faint">{c.desc}</span>
               </span>
             </label>
           ))}
         </div>
-        <div className="flex items-center gap-3 mt-3">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <button className="btn-primary" onClick={createBackup} disabled={creating}>
-            {creating ? 'Creating backup…' : '＋ Create backup'}
+            <Icon name="plus" size={14} />
+            {creating ? 'Creating backup…' : 'Create backup'}
           </button>
           <label className="btn-secondary cursor-pointer">
-            {busy === 'import' ? 'Importing…' : '⬆ Import backup'}
+            <Icon name="upload" size={14} />
+            {busy === 'import' ? 'Importing…' : 'Import backup'}
             <input ref={fileRef} type="file" accept=".tar.gz,.tgz" className="hidden"
               onChange={importFile} disabled={busy === 'import'} />
           </label>
@@ -189,35 +200,43 @@ export default function Backups() {
       </div>
 
       {/* Last backup */}
-      <div className="text-xs text-slate-500">
+      <div className="text-xs text-ink-faint">
         {last
-          ? <>Last backup: <span className="text-slate-300">{last.name}</span> · {fmtDate(last.created)} · {last.size_human}</>
+          ? <>Last backup: <span className="font-mono text-ink-secondary">{last.name}</span> · {fmtDate(last.created)} · {last.size_human}</>
           : 'No backups yet.'}
       </div>
 
       {/* Existing backups */}
       {backups.length > 0 && (
-        <div className="divide-y divide-panel-border border border-panel-border rounded-lg">
+        <div className="table-panel divide-y divide-panel-border/40">
           {backups.map((b) => (
-            <div key={b.name} className="p-3 space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="min-w-0">
-                  <p className="text-sm text-slate-200 truncate">{b.name}</p>
-                  <p className="text-xs text-slate-500">{fmtDate(b.created)} · {b.size_human}</p>
+            <div key={b.name} className="space-y-2.5 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="icon-tile tile-mint"><Icon name="package" size={16} /></span>
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-[13px] text-ink-primary">{b.name}</p>
+                    <p className="text-[11px] text-ink-faint">{fmtDate(b.created)} · {b.size_human}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <button className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600"
-                    onClick={() => download(b.name)}>Download</button>
-                  <button className="px-2 py-1 rounded bg-sky-700 hover:bg-sky-600"
-                    onClick={() => openRestore(b)} disabled={busy === b.name}>Restore</button>
-                  <button className="px-2 py-1 rounded bg-red-800 hover:bg-red-700"
-                    onClick={() => remove(b.name)} disabled={busy === b.name}>Delete</button>
+                <div className="flex items-center gap-1">
+                  <button className="btn-icon" title="Download" onClick={() => download(b.name)}>
+                    <Icon name="download" size={15} />
+                  </button>
+                  <button className="btn-secondary btn-sm" onClick={() => openRestore(b)} disabled={busy === b.name}>
+                    <Icon name="refresh" size={13} /> Restore
+                  </button>
+                  <button className="btn-icon-danger" title="Delete"
+                    onClick={() => remove(b.name)} disabled={busy === b.name}>
+                    <Icon name="trash" size={15} />
+                  </button>
                 </div>
               </div>
+
               {b.components?.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5 pl-12">
                   {b.components.map((k) => (
-                    <span key={k} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                    <span key={k} className="badge badge-neutral !py-0 text-[10px]">
                       {LABELS[k] || k}
                     </span>
                   ))}
@@ -226,24 +245,22 @@ export default function Backups() {
 
               {/* Restore dialog for this backup */}
               {restore?.name === b.name && (
-                <div className="mt-2 p-3 rounded bg-slate-900/70 border border-sky-800 space-y-2">
-                  <p className="text-xs text-sky-300">Select what to restore (overwrites current):</p>
-                  <div className="grid sm:grid-cols-2 gap-1">
+                <div className="animate-fade-up space-y-3 rounded-lg border border-mint-400/30 bg-mint-500/[0.06] p-3.5">
+                  <p className="text-xs text-mint-300">Select what to restore (overwrites current):</p>
+                  <div className="grid gap-1 sm:grid-cols-2">
                     {Object.keys(restore.sel).map((k) => (
-                      <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <label key={k} className="flex cursor-pointer items-center gap-2 text-sm text-ink-body">
                         <input type="checkbox" checked={!!restore.sel[k]}
                           onChange={(e) => setRestore({ ...restore, sel: { ...restore.sel, [k]: e.target.checked } })} />
                         {LABELS[k] || k}
                       </label>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    <button className="btn-primary text-xs py-1" onClick={doRestore} disabled={busy === b.name}>
+                  <div className="flex items-center gap-2">
+                    <button className="btn-primary btn-sm" onClick={doRestore} disabled={busy === b.name}>
                       {busy === b.name ? 'Restoring…' : 'Restore now'}
                     </button>
-                    <button className="text-xs text-slate-400 hover:text-slate-200" onClick={() => setRestore(null)}>
-                      Cancel
-                    </button>
+                    <button className="btn-ghost btn-sm" onClick={() => setRestore(null)}>Cancel</button>
                   </div>
                 </div>
               )}

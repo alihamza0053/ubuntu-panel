@@ -1,8 +1,26 @@
+import Icon from '../../components/Icon'
 import StatusBadge from '../../components/StatusBadge'
 
 function formatTime(iso) {
   if (!iso) return '—'
   return new Date(iso + 'Z').toLocaleString()
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-panel-border/40 py-2 last:border-0">
+      <dt className="shrink-0 text-ink-dim">{label}</dt>
+      <dd className="min-w-0 break-all text-right text-ink-body">{children}</dd>
+    </div>
+  )
+}
+
+// Tint per project folder so the list reads at a glance.
+const FOLDER_TILE = {
+  code: 'tile-mint',
+  allscripts: 'tile-aqua',
+  data: 'tile-amber',
+  dashboard: 'tile-violet',
 }
 
 /** Read-only summary of the whole project. */
@@ -14,51 +32,48 @@ export default function OverviewTab({ project, files }) {
   const rows = [
     ['Folder', project.folder_path],
     ['Dashboard port', project.dashboard_port],
-    ['Domain', project.domain || 'not assigned (Phase 3)'],
+    ['Domain', project.domain || 'not assigned'],
     ['Created', formatTime(project.created_at)],
     ['Last script run', formatTime(project.last_script_run)],
     ['Last script status', project.last_script_status || '—'],
   ]
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
+    <div className="grid gap-4 lg:grid-cols-2">
       <div className="card">
-        <h3 className="font-semibold mb-3">Project Info</h3>
-        <dl className="space-y-2 text-sm">
+        <h3 className="sec-title mb-3">Project Info</h3>
+        <dl className="text-sm">
           {rows.map(([label, value]) => (
-            <div key={label} className="flex justify-between gap-4">
-              <dt className="text-slate-500 shrink-0">{label}</dt>
-              <dd className="text-right break-all">{value}</dd>
-            </div>
+            <Row key={label} label={label}>{value}</Row>
           ))}
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Dashboard status</dt>
-            <dd><StatusBadge status={project.dashboard_status} /></dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Live URL</dt>
-            <dd>
-              <a href={liveUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
-                {liveUrl} ↗
-              </a>
-            </dd>
-          </div>
+          <Row label="Dashboard status"><StatusBadge status={project.dashboard_status} /></Row>
+          <Row label="Live URL">
+            <a href={liveUrl} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1">
+              {liveUrl} <Icon name="external-link" size={12} />
+            </a>
+          </Row>
         </dl>
       </div>
 
       <div className="card">
-        <h3 className="font-semibold mb-3">Folder Contents</h3>
+        <h3 className="sec-title mb-3">Folder Contents</h3>
         {files ? (
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-1.5">
             {Object.entries(files.folders).map(([folder, list]) => (
-              <li key={folder} className="flex justify-between">
-                <span className="text-slate-400 font-mono">{folder}/</span>
-                <span>{list.length} file{list.length === 1 ? '' : 's'}</span>
+              <li key={folder}
+                  className="flex items-center gap-3 rounded-lg px-1 py-1.5 transition-colors hover:bg-mint-400/[0.04]">
+                <span className={`icon-tile ${FOLDER_TILE[folder] || ''}`}>
+                  <Icon name="folder" size={16} />
+                </span>
+                <span className="font-mono text-[13px] text-ink-secondary">{folder}/</span>
+                <span className="ml-auto text-sm text-ink-muted">
+                  {list.length} file{list.length === 1 ? '' : 's'}
+                </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-slate-500 text-sm">Loading…</p>
+          <p className="text-sm text-ink-faint">Loading…</p>
         )}
       </div>
     </div>

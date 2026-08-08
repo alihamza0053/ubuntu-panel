@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
+import Modal from '../components/Modal'
+import PageHeader from '../components/PageHeader'
 import WebsiteCard from '../components/WebsiteCard'
 import { useAuth } from '../context/AuthContext'
 
@@ -54,20 +57,30 @@ export default function Websites() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Websites</h2>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>＋ New Website</button>
-      </div>
+    <div>
+      <PageHeader
+        title="Websites"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Websites' }]}
+        lead="Static, React, PHP and Python sites — upload a build, link a database, assign a domain."
+        actions={
+          <button className="btn-primary" onClick={() => setShowModal(true)}>
+            <Icon name="plus" size={14} /> New Website
+          </button>
+        }
+      />
 
       {loading ? (
-        <p className="text-slate-500">Loading…</p>
+        <p className="text-sm text-ink-faint">Loading…</p>
       ) : sites.length === 0 ? (
-        <div className="card text-center py-12 text-slate-500">
-          No websites yet — create one, then upload a .zip of your React build, PHP, or static HTML site.
+        <div className="empty">
+          <Icon name="globe" size={26} />
+          <p>No websites yet — create one, then upload a .zip of your React build, PHP, or static HTML site.</p>
+          <button className="btn-primary mt-2" onClick={() => setShowModal(true)}>
+            <Icon name="plus" size={14} /> New Website
+          </button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sites.map((s) => (
             <WebsiteCard key={s.id} site={s} onDelete={remove}
               onToggleHidden={isAdmin ? toggleHidden : undefined} />
@@ -76,29 +89,46 @@ export default function Websites() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <form onSubmit={create} className="card w-full max-w-md space-y-3">
-            <h3 className="text-lg font-semibold">New Website</h3>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <input className="input" placeholder="site-name" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Type</label>
-              <select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                <option value="html">Static HTML/CSS/JS</option>
-                <option value="react">React (build → dist/)</option>
-                <option value="php">PHP</option>
-                <option value="python">Python (FastAPI/Flask) — upload &amp; run</option>
-              </select>
+        <Modal
+          as="form"
+          onSubmit={create}
+          onClose={() => setShowModal(false)}
+          title="New Website"
+          subtitle="Creates the site folder and, for Python apps, a supervisor entry on a local port."
+          footer={
+            <>
+              <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+              <button type="submit" className="btn-primary">Create website</button>
+            </>
+          }
+        >
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5
+                            text-sm text-red-300">
+              <Icon name="alert" size={15} className="mt-0.5" />
+              <span>{error}</span>
             </div>
-            <input className="input" placeholder="linked database name (optional)" value={form.db_name}
+          )}
+          <div>
+            <label className="label">Name</label>
+            <input className="input font-mono" placeholder="site-name" value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus required />
+          </div>
+          <div>
+            <label className="label">Type</label>
+            <select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+              <option value="html">Static HTML/CSS/JS</option>
+              <option value="react">React (build → dist/)</option>
+              <option value="php">PHP</option>
+              <option value="python">Python (FastAPI/Flask) — upload &amp; run</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Linked database (optional)</label>
+            <input className="input font-mono" placeholder="database name" value={form.db_name}
               onChange={(e) => setForm({ ...form, db_name: e.target.value })} />
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button type="submit" className="btn-primary">Create</button>
-            </div>
-          </form>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
@@ -29,21 +30,27 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <form onSubmit={handleSubmit} className="card w-full max-w-sm space-y-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-sky-400">ServerHub</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to manage your server</p>
+    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <form onSubmit={handleSubmit} className="card w-full max-w-sm animate-fade-up space-y-5 p-7">
+        <div className="flex flex-col items-center text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-tile bg-mint text-lg
+                           font-black text-onmint shadow-rail">
+            S
+          </span>
+          <h1 className="mt-4 text-xl font-semibold tracking-tight text-ink-primary">ServerHub</h1>
+          <p className="mt-1 text-sm text-ink-muted">Sign in to manage your server</p>
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2">
-            {error}
+          <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5
+                          text-sm text-red-300">
+            <Icon name="alert" size={15} className="mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
 
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Username</label>
+          <label className="label">Username</label>
           <input
             className="input"
             value={username}
@@ -53,7 +60,7 @@ export default function Login() {
           />
         </div>
         <div>
-          <label className="block text-sm text-slate-400 mb-1">Password</label>
+          <label className="label">Password</label>
           <input
             className="input"
             type="password"
@@ -63,9 +70,14 @@ export default function Login() {
           />
         </div>
 
-        <button type="submit" disabled={busy} className="btn-primary w-full justify-center">
+        <button type="submit" disabled={busy} className="btn-primary w-full">
           {busy ? 'Signing in…' : 'Sign in'}
+          {!busy && <Icon name="chevron-right" size={14} />}
         </button>
+
+        <p className="text-center text-[11px] uppercase tracking-[0.1em] text-ink-faint">
+          VPS control panel
+        </p>
       </form>
     </div>
   )

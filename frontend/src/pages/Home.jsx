@@ -1,24 +1,47 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/client'
+import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 import ProjectCard from '../components/ProjectCard'
 import WebsiteCard from '../components/WebsiteCard'
 import { useAuth } from '../context/AuthContext'
 
 /** Small stat widget (CPU / RAM / Disk / Uptime). */
-function StatWidget({ label, value, sub, percent }) {
+function StatWidget({ label, value, sub, percent, icon }) {
+  // Mint is the resting state; saturated colour is reserved for pressure.
   const barColor =
-    percent == null ? '' : percent > 90 ? 'bg-red-500' : percent > 70 ? 'bg-yellow-500' : 'bg-sky-500'
+    percent == null ? '' : percent > 90 ? 'bg-red-500' : percent > 70 ? 'bg-amber-400' : 'bg-mint'
   return (
-    <div className="card">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
-      {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+    <div className="card card-hover">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim">{label}</p>
+          <p className="mt-1.5 text-2xl font-semibold tracking-tight text-ink-primary">{value}</p>
+          {sub && <p className="mt-0.5 text-xs text-ink-faint">{sub}</p>}
+        </div>
+        <span className="icon-tile tile-mint"><Icon name={icon} size={17} /></span>
+      </div>
       {percent != null && (
-        <div className="mt-2 h-1.5 rounded bg-slate-700 overflow-hidden">
-          <div className={`h-full ${barColor}`} style={{ width: `${Math.min(percent, 100)}%` }} />
+        <div className="mt-4 h-1 overflow-hidden rounded-full bg-panel-raised">
+          <div
+            className={`h-full rounded-full transition-[width] duration-300 ${barColor}`}
+            style={{ width: `${Math.min(percent, 100)}%` }}
+          />
         </div>
       )}
+    </div>
+  )
+}
+
+/** Section heading with a mint "manage" link on the right. */
+function SectionBar({ title, to, cta }) {
+  return (
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <h3 className="sec-title">{title}</h3>
+      <Link to={to} className="link inline-flex items-center gap-1 text-sm">
+        {cta} <Icon name="chevron-right" size={13} />
+      </Link>
     </div>
   )
 }
@@ -57,76 +80,76 @@ export default function Home() {
   }, [showProjects, showWebsites])
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Dashboard</h2>
+    <div>
+      <PageHeader
+        title="Dashboard"
+        crumbs={[{ label: 'ServerHub' }, { label: 'Dashboard' }]}
+        lead="Live server health, plus every project and website the panel manages."
+      />
 
       {/* Server stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatWidget
           label="CPU"
+          icon="cpu"
           value={stats ? `${stats.cpu_percent}%` : '…'}
           percent={stats?.cpu_percent}
         />
         <StatWidget
           label="RAM"
+          icon="chip"
           value={stats ? `${stats.memory.percent}%` : '…'}
           sub={stats && `${stats.memory.used_gb} / ${stats.memory.total_gb} GB`}
           percent={stats?.memory.percent}
         />
         <StatWidget
           label="Disk"
+          icon="disk"
           value={stats ? `${stats.disk.percent}%` : '…'}
           sub={stats && `${stats.disk.used_gb} / ${stats.disk.total_gb} GB`}
           percent={stats?.disk.percent}
         />
-        <StatWidget label="Uptime" value={stats ? stats.uptime.human : '…'} />
+        <StatWidget label="Uptime" icon="clock" value={stats ? stats.uptime.human : '…'} />
       </div>
 
       {/* Project cards — only for users with the projects tab */}
       {showProjects && (
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">Python Projects</h3>
-          <Link to="/projects" className="text-sm text-sky-400 hover:underline">
-            Manage projects →
-          </Link>
-        </div>
-        {loading ? (
-          <p className="text-slate-500">Loading…</p>
-        ) : projects.length === 0 ? (
-          <div className="card text-center py-10 text-slate-500">
-            No projects yet.{' '}
-            <Link to="/projects" className="text-sky-400 hover:underline">
-              Create your first project
-            </Link>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {projects.map((p) => (
-              <ProjectCard key={p.id} project={p} onChanged={refresh} />
-            ))}
-          </div>
-        )}
-      </div>
+        <section className="mt-8">
+          <SectionBar title="Python Projects" to="/projects" cta="Manage projects" />
+          {loading ? (
+            <p className="text-sm text-ink-faint">Loading…</p>
+          ) : projects.length === 0 ? (
+            <div className="empty">
+              <Icon name="code" size={26} />
+              <p>No projects yet.</p>
+              <Link to="/projects" className="link text-sm">Create your first project</Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {projects.map((p) => (
+                <ProjectCard key={p.id} project={p} onChanged={refresh} />
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       {/* Website cards — only for users with the websites tab */}
       {showWebsites && (
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">Websites</h3>
-          <Link to="/websites" className="text-sm text-sky-400 hover:underline">Manage websites →</Link>
-        </div>
-        {websites.length === 0 ? (
-          <div className="card text-center py-8 text-slate-600">
-            No websites yet. <Link to="/websites" className="text-sky-400 hover:underline">Create one</Link>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {websites.map((s) => <WebsiteCard key={s.id} site={s} />)}
-          </div>
-        )}
-      </div>
+        <section className="mt-8">
+          <SectionBar title="Websites" to="/websites" cta="Manage websites" />
+          {websites.length === 0 ? (
+            <div className="empty">
+              <Icon name="globe" size={26} />
+              <p>No websites yet.</p>
+              <Link to="/websites" className="link text-sm">Create one</Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {websites.map((s) => <WebsiteCard key={s.id} site={s} />)}
+            </div>
+          )}
+        </section>
       )}
     </div>
   )

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api, { errorMessage } from '../api/client'
-import LiveLog from '../components/LiveLog'
 import Backups from '../components/Backups'
+import Icon from '../components/Icon'
+import LiveLog from '../components/LiveLog'
+import PageHeader from '../components/PageHeader'
 import Users from '../components/Users'
 import { useAuth } from '../context/AuthContext'
 
@@ -91,102 +93,143 @@ export default function Settings() {
     }
   }
 
+  const pwOk = pwMsg.includes('✓')
+  const settingsOk = setMsg.includes('✓')
+
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h2 className="text-2xl font-bold">Settings</h2>
+    <div className="max-w-3xl">
+      <PageHeader
+        title="Settings"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Settings' }]}
+        lead="Panel users, credentials, configuration, backups and updates."
+      />
 
-      {/* User management (admins only) */}
-      {isAdmin && <Users />}
+      <div className="space-y-6">
+        {/* User management (admins only) */}
+        {isAdmin && <Users />}
 
-      {/* Change password */}
-      <form onSubmit={changePassword} className="card space-y-3">
-        <h3 className="font-semibold">Change Admin Password</h3>
-        {pwMsg && <p className={`text-sm ${pwMsg.includes('✓') ? 'text-green-400' : 'text-red-400'}`}>{pwMsg}</p>}
-        <input className="input" type="password" placeholder="Current password" value={pw.current_password}
-          onChange={(e) => setPw({ ...pw, current_password: e.target.value })} required />
-        <input className="input" type="password" placeholder="New password (min 8 chars)" value={pw.new_password}
-          onChange={(e) => setPw({ ...pw, new_password: e.target.value })} required />
-        <input className="input" type="password" placeholder="Confirm new password" value={pw.confirm}
-          onChange={(e) => setPw({ ...pw, confirm: e.target.value })} required />
-        <button className="btn-primary" type="submit">Change Password</button>
-      </form>
-
-      {/* Panel settings */}
-      <form onSubmit={saveSettings} className="card space-y-3">
-        <h3 className="font-semibold">Panel Configuration</h3>
-        {setMsg && <p className="text-sm text-green-400">{setMsg}</p>}
-        <div>
-          <label className="block text-sm text-slate-400 mb-1">Panel port (informational)</label>
-          <input className="input" value={settings.panel_port}
-            onChange={(e) => setSettings({ ...settings, panel_port: e.target.value })} placeholder="8765" />
-        </div>
-        <div>
-          <label className="block text-sm text-slate-400 mb-1">Panel subdomain</label>
-          <input className="input" value={settings.panel_subdomain}
-            onChange={(e) => setSettings({ ...settings, panel_subdomain: e.target.value })} placeholder="panel.yourdomain.com" />
-        </div>
-        <p className="text-xs text-slate-500">
-          Changing the actual listen port requires updating the supervisor + nginx
-          config on the server and restarting the panel.
-        </p>
-        <button className="btn-primary" type="submit">Save</button>
-      </form>
-
-      {/* Backup & Restore */}
-      <Backups />
-
-      {/* System cleanup: CPU / RAM / Disk cards (admins only) */}
-      {isAdmin && <SystemCleanup />}
-
-
-      {/* Updates */}
-      <div className="card space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Updates</h3>
-          <button className="text-xs text-slate-400 hover:text-slate-200"
-            onClick={checkUpdate} disabled={updLoading || !!updPath}>
-            {updLoading ? 'Checking…' : '↻ Check again'}
+        {/* Change password */}
+        <form onSubmit={changePassword} className="card space-y-4">
+          <h3 className="sec-title">Change Admin Password</h3>
+          {pwMsg && (
+            <p className={`flex items-center gap-1.5 text-sm ${pwOk ? 'text-mint-300' : 'text-red-400'}`}>
+              <Icon name={pwOk ? 'check' : 'alert'} size={14} />
+              {pwMsg.replace(' ✓', '')}
+            </p>
+          )}
+          <div>
+            <label className="label">Current password</label>
+            <input className="input" type="password" value={pw.current_password}
+              onChange={(e) => setPw({ ...pw, current_password: e.target.value })} required />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">New password</label>
+              <input className="input" type="password" placeholder="min 8 characters" value={pw.new_password}
+                onChange={(e) => setPw({ ...pw, new_password: e.target.value })} required />
+            </div>
+            <div>
+              <label className="label">Confirm new password</label>
+              <input className="input" type="password" value={pw.confirm}
+                onChange={(e) => setPw({ ...pw, confirm: e.target.value })} required />
+            </div>
+          </div>
+          <button className="btn-primary" type="submit">
+            <Icon name="lock" size={14} /> Change password
           </button>
+        </form>
+
+        {/* Panel settings */}
+        <form onSubmit={saveSettings} className="card space-y-4">
+          <h3 className="sec-title">Panel Configuration</h3>
+          {setMsg && (
+            <p className={`flex items-center gap-1.5 text-sm ${settingsOk ? 'text-mint-300' : 'text-red-400'}`}>
+              <Icon name={settingsOk ? 'check' : 'alert'} size={14} />
+              {setMsg.replace(' ✓', '')}
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Panel port (informational)</label>
+              <input className="input font-mono" value={settings.panel_port}
+                onChange={(e) => setSettings({ ...settings, panel_port: e.target.value })} placeholder="8765" />
+            </div>
+            <div>
+              <label className="label">Panel subdomain</label>
+              <input className="input font-mono" value={settings.panel_subdomain}
+                onChange={(e) => setSettings({ ...settings, panel_subdomain: e.target.value })}
+                placeholder="panel.yourdomain.com" />
+            </div>
+          </div>
+          <p className="hint">
+            Changing the actual listen port requires updating the supervisor + nginx
+            config on the server and restarting the panel.
+          </p>
+          <button className="btn-primary" type="submit">Save</button>
+        </form>
+
+        {/* Backup & Restore */}
+        <Backups />
+
+        {/* System cleanup: CPU / RAM / Disk cards (admins only) */}
+        {isAdmin && <SystemCleanup />}
+
+        {/* Updates */}
+        <div className="card space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="sec-title">Updates</h3>
+            <button className="btn-ghost btn-sm" onClick={checkUpdate} disabled={updLoading || !!updPath}>
+              <Icon name="refresh" size={13} />
+              {updLoading ? 'Checking…' : 'Check again'}
+            </button>
+          </div>
+
+          {upd && (
+            <p className={`text-sm ${
+              upd.error ? 'text-red-400'
+              : upd.behind > 0 ? 'text-amber-300'
+              : upd.behind === 0 ? 'text-mint-300' : 'text-ink-muted'}`}>
+              {upd.message}
+            </p>
+          )}
+          {upd?.current && (
+            <p className="text-xs text-ink-faint">
+              Current: <code className="font-mono text-ink-muted">{upd.current}</code>
+            </p>
+          )}
+          {upd?.src && (
+            <p className="text-xs text-ink-faint">
+              Source: <code className="font-mono text-ink-muted">{upd.src}</code>
+            </p>
+          )}
+
+          {restarting ? (
+            <p className="flex items-start gap-2 text-sm text-aqua">
+              <Icon name="refresh" size={14} className="mt-0.5" />
+              Panel is restarting to finish the update… this page will reload
+              automatically when it's back.
+            </p>
+          ) : (
+            <button className="btn-primary"
+              onClick={startUpdate}
+              disabled={!!updPath || (upd && upd.ready === false)}>
+              <Icon name="upload" size={14} />
+              {updPath ? 'Updating…' : 'Update now'}
+            </button>
+          )}
+
+          {upd && upd.ready === false && (
+            <p className="hint">
+              No source checkout found on the server. The update button redeploys
+              from a git clone / uploaded bundle — set <code className="font-mono text-ink-muted">UPDATE_SRC</code> in{' '}
+              <code className="font-mono text-ink-muted">backend/.env</code> (default{' '}
+              <code className="font-mono text-ink-muted">/opt/serverhub-src</code>),
+              then re-run <code className="font-mono text-ink-muted">sudo bash deploy/update.sh</code> once.
+            </p>
+          )}
+
+          {updPath && <LiveLog path={updPath} onClose={onUpdateClosed} />}
         </div>
-
-        {upd && (
-          <p className={`text-sm ${
-            upd.error ? 'text-red-400'
-            : upd.behind > 0 ? 'text-yellow-300'
-            : upd.behind === 0 ? 'text-green-400' : 'text-slate-400'}`}>
-            {upd.message}
-          </p>
-        )}
-        {upd?.current && (
-          <p className="text-xs text-slate-500">Current: <code>{upd.current}</code></p>
-        )}
-        {upd?.src && (
-          <p className="text-xs text-slate-600">Source: <code>{upd.src}</code></p>
-        )}
-
-        {restarting ? (
-          <p className="text-sm text-sky-300">
-            Panel is restarting to finish the update… this page will reload
-            automatically when it's back.
-          </p>
-        ) : (
-          <button className="btn-primary"
-            onClick={startUpdate}
-            disabled={!!updPath || (upd && upd.ready === false)}>
-            {updPath ? 'Updating…' : '⬆ Update now'}
-          </button>
-        )}
-
-        {upd && upd.ready === false && (
-          <p className="text-xs text-slate-500">
-            No source checkout found on the server. The update button redeploys
-            from a git clone / uploaded bundle — set <code>UPDATE_SRC</code> in{' '}
-            <code>backend/.env</code> (default <code>/opt/serverhub-src</code>),
-            then re-run <code>sudo bash deploy/update.sh</code> once.
-          </p>
-        )}
-
-        {updPath && <LiveLog path={updPath} onClose={onUpdateClosed} />}
       </div>
     </div>
   )
@@ -206,13 +249,13 @@ function fmtSize(bytes) {
 
 function StatBar({ label, percent, detail, color }) {
   return (
-    <div className="flex-1 min-w-[10rem]">
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-400">{label}</span>
-        <span className="text-slate-300">{detail}</span>
+    <div className="min-w-[10rem] flex-1">
+      <div className="mb-1.5 flex justify-between text-xs">
+        <span className="text-ink-muted">{label}</span>
+        <span className="font-mono text-ink-secondary">{detail}</span>
       </div>
-      <div className="h-2 rounded bg-slate-800 overflow-hidden">
-        <div className={`h-full ${color}`} style={{ width: `${Math.min(percent || 0, 100)}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-panel-raised">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(percent || 0, 100)}%` }} />
       </div>
     </div>
   )
@@ -222,23 +265,23 @@ function StatBar({ label, percent, detail, color }) {
 function ProcessTable({ rows, valueHeader, value }) {
   if (!rows?.length) return null
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
+    <div className="table-panel">
+      <table className="tbl text-xs">
         <thead>
-          <tr className="text-slate-500 text-left">
-            <th className="py-1 pr-2 font-normal">Process</th>
-            <th className="py-1 pr-2 font-normal">User</th>
-            <th className="py-1 pr-2 font-normal">PID</th>
-            <th className="py-1 font-normal text-right">{valueHeader}</th>
+          <tr>
+            <th>Process</th>
+            <th>User</th>
+            <th>PID</th>
+            <th className="text-right">{valueHeader}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((p) => (
-            <tr key={p.pid} className="border-t border-slate-800">
-              <td className="py-1 pr-2 text-slate-200 truncate max-w-[12rem]">{p.name}</td>
-              <td className="py-1 pr-2 text-slate-500">{p.user}</td>
-              <td className="py-1 pr-2 text-slate-500 font-mono">{p.pid}</td>
-              <td className="py-1 font-mono text-right text-slate-300">{value(p)}</td>
+            <tr key={p.pid}>
+              <td className="max-w-[12rem] truncate text-ink-secondary">{p.name}</td>
+              <td className="text-ink-faint">{p.user}</td>
+              <td className="font-mono text-ink-faint">{p.pid}</td>
+              <td className="text-right font-mono text-ink-body">{value(p)}</td>
             </tr>
           ))}
         </tbody>
@@ -303,42 +346,44 @@ function SystemCleanup() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">System Cleanup</h3>
-        <button className="text-xs text-slate-400 hover:text-slate-200"
-          onClick={refresh} disabled={loading}>
-          {loading ? 'Loading…' : '↻ Refresh'}
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="sec-title">System Cleanup</h3>
+        <button className="btn-ghost btn-sm" onClick={refresh} disabled={loading}>
+          <Icon name="refresh" size={13} />
+          {loading ? 'Loading…' : 'Refresh'}
         </button>
       </div>
 
       {helperMissing && (
-        <p className="text-xs text-yellow-500 -mt-3">
-          The cleanup helper isn't installed on this server yet — run{' '}
-          <code>sudo bash deploy/update.sh</code> once, then the RAM/Disk
-          cleanup buttons will work.
+        <p className="flex items-start gap-1.5 text-xs text-amber-300">
+          <Icon name="alert" size={13} className="mt-0.5" />
+          <span>
+            The cleanup helper isn't installed on this server yet — run{' '}
+            <code className="font-mono text-ink-secondary">sudo bash deploy/update.sh</code> once,
+            then the RAM/Disk cleanup buttons will work.
+          </span>
         </p>
       )}
 
       {/* ─── CPU ─── */}
-      <div className="card space-y-3">
-        <h3 className="font-semibold">⚙️ CPU</h3>
+      <div className="card space-y-4">
+        <h3 className="sec-title">CPU</h3>
         {cpu && (
           <>
             <StatBar label={`CPU (${cpu.cores} core${cpu.cores > 1 ? 's' : ''})`}
-              percent={cpu.percent} detail={`${cpu.percent}%`} color="bg-sky-500" />
+              percent={cpu.percent} detail={`${cpu.percent}%`} color="bg-mint" />
             {cpu.load_avg && (
-              <p className="text-xs text-slate-500">
+              <p className="hint">
                 Load average (1 / 5 / 15 min):{' '}
-                <span className="font-mono text-slate-300">{cpu.load_avg.join(' / ')}</span>
+                <span className="font-mono text-ink-secondary">{cpu.load_avg.join(' / ')}</span>
                 {' '}— above {cpu.cores}.0 means the CPU is saturated.
               </p>
             )}
-            <p className="text-xs text-slate-500">Top processes by CPU right now:</p>
-            <ProcessTable rows={cpu.top} valueHeader="CPU %"
-              value={(p) => `${p.cpu}%`} />
-            <p className="text-xs text-slate-600">
+            <p className="label !mb-2">Top processes by CPU right now</p>
+            <ProcessTable rows={cpu.top} valueHeader="CPU %" value={(p) => `${p.cpu}%`} />
+            <p className="hint">
               CPU load isn't "cleanable" — it's whatever is running. If something
-              here shouldn't be running, stop it from the <b>Server</b> tab's
+              here shouldn't be running, stop it from the <b className="text-ink-secondary">Server</b> tab's
               process list (or stop that script/dashboard/app).
             </p>
           </>
@@ -346,20 +391,20 @@ function SystemCleanup() {
       </div>
 
       {/* ─── RAM ─── */}
-      <div className="card space-y-3">
-        <h3 className="font-semibold">🧠 RAM</h3>
+      <div className="card space-y-4">
+        <h3 className="sec-title">RAM</h3>
         {mem && (
           <>
             <StatBar label="RAM" percent={mem.percent}
-              detail={`${mem.used_gb} / ${mem.total_gb} GB`} color="bg-violet-500" />
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
-              <span>Available: <b className="text-slate-200">{mem.available_gb} GB</b></span>
-              <span>Disk cache: <b className="text-slate-200">{mem.cached_gb} GB</b></span>
+              detail={`${mem.used_gb} / ${mem.total_gb} GB`} color="bg-aqua" />
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-muted">
+              <span>Available: <b className="text-ink-secondary">{mem.available_gb} GB</b></span>
+              <span>Disk cache: <b className="text-ink-secondary">{mem.cached_gb} GB</b></span>
             </div>
-            <p className="text-xs text-slate-500">Top processes by memory:</p>
+            <p className="label !mb-2">Top processes by memory</p>
             <ProcessTable rows={mem.top} valueHeader="Memory"
               value={(p) => `${p.memory_mb} MB (${p.memory_percent}%)`} />
-            <p className="text-xs text-slate-600">
+            <p className="hint">
               Linux keeps free RAM filled with disk cache on purpose — that part
               is released automatically when programs need it. Flushing it is
               safe but usually only worth it before starting something heavy.
@@ -367,7 +412,8 @@ function SystemCleanup() {
             <button className="btn-primary"
               onClick={() => start('ram', ['ram'])}
               disabled={!!runningKind || helperMissing}>
-              {runningKind === 'ram' ? 'Flushing…' : '🧹 Flush RAM caches'}
+              <Icon name="clean" size={14} />
+              {runningKind === 'ram' ? 'Flushing…' : 'Flush RAM caches'}
               {ramTask?.size ? ` (~${fmtSize(ramTask.size)})` : ''}
             </button>
             {runningKind === 'ram' && wsPath && (
@@ -378,24 +424,25 @@ function SystemCleanup() {
       </div>
 
       {/* ─── Disk ─── */}
-      <div className="card space-y-3">
-        <h3 className="font-semibold">💾 Disk</h3>
+      <div className="card space-y-4">
+        <h3 className="sec-title">Disk</h3>
         {disk && (
           <>
             <StatBar label="Disk (/)" percent={disk.percent}
               detail={`${disk.used_gb} / ${disk.total_gb} GB · ${disk.free_gb} GB free`}
-              color="bg-emerald-500" />
+              color="bg-violet-400" />
 
             {disk.breakdown?.length > 0 && (
               <>
-                <p className="text-xs text-slate-500">Where the space is going:</p>
-                <div className="space-y-1">
+                <p className="label !mb-2">Where the space is going</p>
+                <div className="space-y-1.5">
                   {disk.breakdown.map((d) => (
-                    <div key={d.path} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-slate-300">{d.label}
-                        <span className="text-slate-600 font-mono ml-1.5">{d.path}</span>
+                    <div key={d.path} className="flex items-center justify-between gap-3 text-xs">
+                      <span className="min-w-0 truncate text-ink-body">
+                        {d.label}
+                        <span className="ml-2 font-mono text-ink-faint">{d.path}</span>
                       </span>
-                      <span className="font-mono text-slate-300 shrink-0">{fmtSize(d.size)}</span>
+                      <span className="shrink-0 font-mono text-ink-secondary">{fmtSize(d.size)}</span>
                     </div>
                   ))}
                 </div>
@@ -404,15 +451,15 @@ function SystemCleanup() {
 
             {disk.docker?.length > 0 && (
               <>
-                <p className="text-xs text-slate-500 mt-1">Docker disk usage:</p>
-                <div className="space-y-1">
+                <p className="label !mb-2">Docker disk usage</p>
+                <div className="space-y-1.5">
                   {disk.docker.map((d) => (
-                    <div key={d.type} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="text-slate-300">{d.type}
-                        <span className="text-slate-600 ml-1.5">({d.count})</span>
+                    <div key={d.type} className="flex items-center justify-between gap-3 text-xs">
+                      <span className="text-ink-body">
+                        {d.type}<span className="ml-1.5 text-ink-faint">({d.count})</span>
                       </span>
-                      <span className="font-mono text-slate-300 shrink-0">
-                        {d.size} <span className="text-slate-500">· reclaimable {d.reclaimable}</span>
+                      <span className="shrink-0 font-mono text-ink-secondary">
+                        {d.size} <span className="text-ink-faint">· reclaimable {d.reclaimable}</span>
                       </span>
                     </div>
                   ))}
@@ -420,21 +467,22 @@ function SystemCleanup() {
               </>
             )}
 
-            <p className="text-xs text-slate-500 border-t border-slate-800 pt-2">
+            <p className="hint border-t border-panel-border/50 pt-3">
               Safe to clean (nothing here touches your projects, websites, apps
               or databases):
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {diskTasks.map((t) => (
                 <label key={t.key}
-                  className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-800/60 cursor-pointer">
-                  <input type="checkbox" className="mt-1 accent-sky-500"
+                  className="flex cursor-pointer items-start gap-3 rounded-lg px-2.5 py-2 transition-colors
+                             hover:bg-panel-raised/60">
+                  <input type="checkbox" className="mt-0.5"
                     checked={selected.has(t.key)} onChange={() => toggle(t.key)} />
-                  <span className="flex-1 min-w-0">
-                    <span className="text-sm text-slate-200">{t.label}</span>
-                    <span className="block text-xs text-slate-500">{t.description}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-sm text-ink-secondary">{t.label}</span>
+                    <span className="block text-xs text-ink-faint">{t.description}</span>
                   </span>
-                  <span className="text-xs text-slate-400 font-mono shrink-0">
+                  <span className="shrink-0 font-mono text-xs text-ink-muted">
                     {t.key === 'trash' && t.count ? `${t.count} item(s) · ` : ''}{fmtSize(t.size)}
                   </span>
                 </label>
@@ -445,7 +493,8 @@ function SystemCleanup() {
               onClick={() => start('disk', diskTasks.map((t) => t.key).filter((k) => selected.has(k)))}
               disabled={!!runningKind || helperMissing
                 || diskTasks.every((t) => !selected.has(t.key))}>
-              {runningKind === 'disk' ? 'Cleaning…' : '🧹 Clean disk now'}
+              <Icon name="clean" size={14} />
+              {runningKind === 'disk' ? 'Cleaning…' : 'Clean disk now'}
             </button>
             {runningKind === 'disk' && wsPath && (
               <LiveLog path={wsPath} onClose={onCleanupClosed} />

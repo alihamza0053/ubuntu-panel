@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
+import Modal from '../components/Modal'
+import PageHeader from '../components/PageHeader'
 import ProjectCard from '../components/ProjectCard'
 import { useAuth } from '../context/AuthContext'
 
@@ -64,42 +67,52 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Python Projects</h2>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
-          ＋ New Project
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        title="Python Projects"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Projects' }]}
+        lead="Each project gets a standard workspace — code, allscripts, data and dashboard folders — plus a Streamlit service."
+        actions={
+          <button className="btn-primary" onClick={() => setShowModal(true)}>
+            <Icon name="plus" size={14} /> New Project
+          </button>
+        }
+      />
 
       {loading ? (
-        <p className="text-slate-500">Loading…</p>
+        <p className="text-sm text-ink-faint">Loading…</p>
       ) : projects.length === 0 ? (
-        <div className="card text-center py-12 text-slate-500">
-          No projects yet — create one to get the standard workspace folders
-          (code / allscripts / data / dashboard).
+        <div className="empty">
+          <Icon name="code" size={26} />
+          <p>No projects yet — create one to get the standard workspace folders.</p>
+          <button className="btn-primary mt-2" onClick={() => setShowModal(true)}>
+            <Icon name="plus" size={14} /> New Project
+          </button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((p) => (
-            <div key={p.id} className="relative">
+            <div key={p.id} className="group relative">
               <ProjectCard project={p} onChanged={refresh} />
-              <button
-                onClick={() => deleteProject(p)}
-                className="absolute top-3 right-3 -translate-y-9 text-slate-600 hover:text-red-400 text-xs"
-                title="Delete project"
-              >
-                🗑
-              </button>
-              {isAdmin && (
+              <div className="absolute -top-2 right-3 flex items-center gap-0.5 opacity-0 transition-opacity
+                              duration-150 focus-within:opacity-100 group-hover:opacity-100">
+                {isAdmin && (
+                  <button
+                    onClick={() => toggleHidden(p)}
+                    className="btn-icon h-7 w-7 border-panel-border/80 bg-panel-card"
+                    title={p.hidden ? 'Hidden from non-admins — click to unhide' : 'Hide from non-admins'}
+                  >
+                    <Icon name={p.hidden ? 'eye-off' : 'eye'} size={14} />
+                  </button>
+                )}
                 <button
-                  onClick={() => toggleHidden(p)}
-                  className="absolute top-3 right-9 -translate-y-9 text-slate-600 hover:text-sky-400 text-xs"
-                  title={p.hidden ? 'Hidden from non-admins — click to unhide' : 'Hide from non-admins'}
+                  onClick={() => deleteProject(p)}
+                  className="btn-icon-danger h-7 w-7 border-panel-border/80 bg-panel-card"
+                  title="Delete project"
                 >
-                  {p.hidden ? '🙈' : '👁'}
+                  <Icon name="trash" size={14} />
                 </button>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -107,36 +120,40 @@ export default function Projects() {
 
       {/* New Project modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <form onSubmit={createProject} className="card w-full max-w-md space-y-4">
-            <h3 className="text-lg font-semibold">New Project</h3>
-            <p className="text-sm text-slate-500">
-              Creates /srv/projects/&lt;name&gt;/ with code, allscripts, data and dashboard
-              folders, plus a supervisor entry for its Streamlit dashboard.
-            </p>
-            {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2">
-                {error}
-              </div>
-            )}
+        <Modal
+          as="form"
+          onSubmit={createProject}
+          onClose={() => setShowModal(false)}
+          title="New Project"
+          subtitle="Creates /srv/projects/<name>/ with code, allscripts, data and dashboard folders, plus a supervisor entry for its Streamlit dashboard."
+          footer={
+            <>
+              <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+              <button type="submit" className="btn-primary" disabled={busy}>
+                {busy ? 'Creating…' : 'Create project'}
+              </button>
+            </>
+          }
+        >
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5
+                            text-sm text-red-300">
+              <Icon name="alert" size={15} className="mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+          <div>
+            <label className="label">Project name</label>
             <input
-              className="input"
+              className="input font-mono"
               placeholder="project-name (letters, numbers, - _)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               autoFocus
               required
             />
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary" disabled={busy}>
-                {busy ? 'Creating…' : 'Create'}
-              </button>
-            </div>
-          </form>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import api from '../api/client'
+import PageHeader from '../components/PageHeader'
 import StatusBadge from '../components/StatusBadge'
 import DashboardTab from './project-tabs/DashboardTab'
 import DataFilesTab from './project-tabs/DataFilesTab'
@@ -52,29 +53,32 @@ export default function ProjectDetail() {
     setSearchParams({ tab: 'editor' })
   }
 
-  if (!project) return <p className="text-slate-500">Loading…</p>
+  if (!project) return <p className="text-sm text-ink-faint">Loading…</p>
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <Link to="/projects" className="text-slate-500 hover:text-slate-300">←</Link>
-        <h2 className="text-2xl font-bold">{project.name}</h2>
-        <StatusBadge status={project.dashboard_status} />
-        <span className="text-sm text-slate-500">port {project.dashboard_port}</span>
-      </div>
+    <div>
+      <PageHeader
+        title={project.name}
+        crumbs={[
+          { label: 'ServerHub', to: '/dashboard' },
+          { label: 'Projects', to: '/projects' },
+          { label: project.name },
+        ]}
+        badge={
+          <span className="flex items-center gap-2">
+            <StatusBadge status={project.dashboard_status} />
+            <span className="badge badge-neutral font-mono">port {project.dashboard_port}</span>
+          </span>
+        }
+      />
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-panel-border overflow-x-auto">
+      <div className="tabs">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setSearchParams({ tab: t.key })}
-            className={`px-4 py-2 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              tab === t.key
-                ? 'border-sky-400 text-sky-300'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+            className={`tab ${tab === t.key ? 'tab-active' : ''}`}
           >
             {t.label}
           </button>
@@ -82,21 +86,23 @@ export default function ProjectDetail() {
       </div>
 
       {/* Active tab */}
-      {tab === 'overview' && <OverviewTab project={project} files={files} />}
-      {tab === 'files' && (
-        <FilesTab project={project} files={files} onChanged={refresh} onOpenFile={openInEditor} />
-      )}
-      {tab === 'editor' && (
-        <EditorTab project={project} files={files} initialFile={editorFile} />
-      )}
-      {tab === 'scripts' && <ScriptsTab project={project} onChanged={refresh} />}
-      {tab === 'packages' && <PackagesTab project={project} />}
-      {tab === 'pipeline' && <PipelineTab project={project} />}
-      {tab === 'dashboard' && <DashboardTab project={project} onChanged={refresh} />}
-      {tab === 'scheduler' && <SchedulerTab project={project} />}
-      {tab === 'data' && <DataFilesTab project={project} files={files} onChanged={refresh} />}
-      {tab === 'onedrive' && <OneDriveTab project={project} />}
-      {tab === 'portal' && <UploadPortalTab project={project} onChanged={refresh} />}
+      <div className="mt-5 panel-enter" key={tab}>
+        {tab === 'overview' && <OverviewTab project={project} files={files} />}
+        {tab === 'files' && (
+          <FilesTab project={project} files={files} onChanged={refresh} onOpenFile={openInEditor} />
+        )}
+        {tab === 'editor' && (
+          <EditorTab project={project} files={files} initialFile={editorFile} />
+        )}
+        {tab === 'scripts' && <ScriptsTab project={project} onChanged={refresh} />}
+        {tab === 'packages' && <PackagesTab project={project} />}
+        {tab === 'pipeline' && <PipelineTab project={project} />}
+        {tab === 'dashboard' && <DashboardTab project={project} onChanged={refresh} />}
+        {tab === 'scheduler' && <SchedulerTab project={project} />}
+        {tab === 'data' && <DataFilesTab project={project} files={files} onChanged={refresh} />}
+        {tab === 'onedrive' && <OneDriveTab project={project} />}
+        {tab === 'portal' && <UploadPortalTab project={project} onChanged={refresh} />}
+      </div>
     </div>
   )
 }

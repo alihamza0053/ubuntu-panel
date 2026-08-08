@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import api, { errorMessage } from '../api/client'
 import { wsUrl } from '../api/ws'
+import Icon from '../components/Icon'
 import LiveLog from '../components/LiveLog'
+import PageHeader from '../components/PageHeader'
 
 /**
  * Always-on global activity feed — streams everything the panel is doing right
@@ -11,10 +13,11 @@ function LiveActivity() {
   const [open, setOpen] = useState(true)
   return (
     <div className="card">
-      <div className="flex items-center gap-2">
-        <h3 className="font-semibold">⚡ Live Activity</h3>
-        <span className="text-xs text-slate-500">scripts, pipelines &amp; dashboard actions as they happen</span>
-        <button className="ml-auto text-xs text-slate-400 hover:text-slate-200" onClick={() => setOpen((o) => !o)}>
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="sec-title">Live Activity</h3>
+        <span className="hint">scripts, pipelines &amp; dashboard actions as they happen</span>
+        <button className="btn-ghost btn-sm ml-auto" onClick={() => setOpen((o) => !o)}>
+          <Icon name={open ? 'chevron-down' : 'chevron-right'} size={13} />
           {open ? 'hide' : 'show'}
         </button>
       </div>
@@ -108,66 +111,82 @@ export default function Logs() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Logs</h2>
+    <div>
+      <PageHeader
+        title="Logs"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Logs' }]}
+        lead="Nginx, system, supervisor, pipeline and script output — tail any of them live."
+      />
 
       {/* Always-on global activity feed */}
       <LiveActivity />
 
-      <div className="flex gap-4" style={{ minHeight: '70vh' }}>
+      <div className="mt-4 flex flex-col gap-4 lg:flex-row" style={{ minHeight: '70vh' }}>
         {/* Sidebar */}
-        <aside className="w-64 shrink-0 card overflow-y-auto">
-          <h4 className="text-xs uppercase tracking-wide text-slate-500 mb-2">Sources</h4>
+        <aside className="card w-full shrink-0 overflow-y-auto lg:w-64">
+          <h4 className="label">Sources</h4>
           <ul className="space-y-0.5">
-            {sources.map((src) => (
-              <li key={`${src.type}-${src.name}`}>
-                <button
-                  onClick={() => setSelected(src)}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm truncate ${
-                    selected?.type === src.type && selected?.name === src.name
-                      ? 'bg-sky-600/20 text-sky-300'
-                      : 'text-slate-300 hover:bg-slate-700/50'
-                  }`}
-                >
-                  {src.label}
-                </button>
-              </li>
-            ))}
-            {sources.length === 0 && <li className="text-xs text-slate-600 px-2">No sources</li>}
+            {sources.map((src) => {
+              const active = selected?.type === src.type && selected?.name === src.name
+              return (
+                <li key={`${src.type}-${src.name}`}>
+                  <button
+                    onClick={() => setSelected(src)}
+                    className={`list-item ${active ? 'list-item-active' : ''}`}
+                  >
+                    {src.label}
+                  </button>
+                </li>
+              )
+            })}
+            {sources.length === 0 && <li className="px-2.5 text-xs text-ink-faint">No sources</li>}
           </ul>
         </aside>
 
         {/* Main panel */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="font-mono text-sm text-slate-400">{selected?.label || 'Select a log'}</span>
+        <div className="min-w-0 flex-1">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="truncate font-mono text-sm text-ink-secondary">
+              {selected?.label || 'Select a log'}
+            </span>
             <div className="ml-auto flex items-center gap-2">
-              <input
-                className="input max-w-xs py-1"
-                placeholder="filter…"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              />
+              <div className="relative">
+                <Icon name="filter" size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+                <input
+                  className="input max-w-[12rem] py-1.5 pl-8 text-[13px]"
+                  placeholder="filter…"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                />
+              </div>
               <button
-                className={live ? 'btn-primary' : 'btn-secondary'}
+                className={live ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
                 onClick={() => setLive((v) => !v)}
                 disabled={!selected}
               >
-                {live ? '● Live' : '○ Live'}
+                <span className={live ? 'dot-pulse' : 'dot'} /> Live
               </button>
-              <button className="btn-secondary" onClick={download} disabled={!selected}>
-                ⬇ Download
+              <button className="btn-secondary btn-sm" onClick={download} disabled={!selected}>
+                <Icon name="download" size={13} /> Download
               </button>
             </div>
           </div>
 
-          <pre
-            ref={boxRef}
-            className="bg-black text-slate-300 text-xs font-mono p-3 rounded-lg overflow-auto whitespace-pre-wrap"
-            style={{ height: '65vh' }}
-          >
-            {selected ? filtered.join('\n') || '(empty)' : 'Pick a log source from the left.'}
-          </pre>
+          <div className="log-pane">
+            <div className="log-head">
+              <span className={`flex items-center gap-2 font-medium ${live ? 'text-mint-300' : 'text-ink-dim'}`}>
+                <span className={live ? 'dot-pulse' : 'dot'} />
+                {live ? 'streaming' : 'snapshot'}
+              </span>
+              <span className="font-mono text-ink-faint">{filtered.length} lines</span>
+            </div>
+            <pre ref={boxRef} className="log-body" style={{ height: '65vh' }}>
+              {selected
+                ? filtered.join('\n') || <span className="text-ink-faint">(empty)</span>
+                : <span className="text-ink-faint">Pick a log source from the left.</span>}
+            </pre>
+          </div>
         </div>
       </div>
     </div>

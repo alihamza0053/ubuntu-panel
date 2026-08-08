@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import api, { errorMessage } from '../../api/client'
+import Icon from '../../components/Icon'
 import LiveLog from '../../components/LiveLog'
 
 /**
@@ -48,68 +49,90 @@ export default function PackagesTab({ project }) {
   return (
     <div className="space-y-4">
       <div className="card">
-        <h3 className="font-semibold">📦 Install a Python package</h3>
-        <p className="text-xs text-slate-500 mt-1">
-          Installs into the scripts' Python ({pyver || 'python3'}). When a script fails with
-          <span className="font-mono"> ModuleNotFoundError: No module named 'X'</span>, type
-          <span className="font-mono"> X</span> here and Install.
-        </p>
-        <form onSubmit={install} className="mt-3 flex gap-2 flex-wrap">
+        <div className="flex items-center gap-3">
+          <span className="icon-tile tile-mint"><Icon name="package" size={17} /></span>
+          <div className="min-w-0">
+            <h3 className="sec-title">Install a Python package</h3>
+            <p className="hint mt-0.5">
+              Installs into the scripts' Python ({pyver || 'python3'}). When a script fails with
+              <span className="font-mono text-ink-secondary"> ModuleNotFoundError: No module named 'X'</span>, type
+              <span className="font-mono text-ink-secondary"> X</span> here and Install.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={install} className="mt-4 flex flex-wrap gap-2">
           <input
-            className="input font-mono flex-1 min-w-[16rem]"
+            className="input min-w-[16rem] flex-1 font-mono text-[13px]"
             placeholder="e.g. playwright   or   requests==2.31.0   (space-separate several)"
             value={spec}
             onChange={(e) => setSpec(e.target.value)}
           />
-          <button type="submit" className="btn-primary" disabled={!spec.trim()}>⬇ Install</button>
+          <button type="submit" className="btn-primary" disabled={!spec.trim()}>
+            <Icon name="download" size={14} /> Install
+          </button>
         </form>
-        <div className="text-xs text-slate-600 mt-2 flex items-center gap-2 flex-wrap">
-          <span>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="hint">
             Packages are shared by all projects' scripts (same interpreter). Using Playwright?
             After installing it, download its browser:
           </span>
-          <button type="button" className="btn-secondary py-1" onClick={installPlaywrightBrowsers}>
-            🎭 Install Playwright browsers
+          <button type="button" className="btn-secondary btn-sm" onClick={installPlaywrightBrowsers}>
+            <Icon name="globe" size={13} /> Install Playwright browsers
           </button>
         </div>
-        {installWs && (
-          <LiveLog path={installWs} onClose={refresh} />
-        )}
+
+        {installWs && <LiveLog path={installWs} onClose={refresh} />}
       </div>
 
       <div className="card">
-        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <h3 className="font-semibold">Installed packages {!loading && `(${pkgs.length})`}</h3>
-          <input
-            className="input max-w-xs"
-            placeholder="🔎 filter…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="sec-title">
+            Installed packages
+            {!loading && <span className="tab-count ml-1">{pkgs.length}</span>}
+          </h3>
+          <div className="relative max-w-xs flex-1">
+            <Icon name="search" size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+            <input
+              className="input pl-9"
+              placeholder="filter…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
         </div>
-        {err && <p className="text-red-400 text-sm mb-2">{err}</p>}
+
+        {err && (
+          <p className="mb-3 flex items-center gap-1.5 text-sm text-red-400">
+            <Icon name="alert" size={14} /> {err}
+          </p>
+        )}
+
         {loading ? (
-          <p className="text-slate-500">Loading…</p>
+          <p className="text-sm text-ink-faint">Loading…</p>
+        ) : filtered.length === 0 ? (
+          <div className="empty">
+            <Icon name="package" size={26} />
+            <p>No packages match “{query}”.</p>
+          </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                <th className="py-2">Package</th>
-                <th>Version</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-panel-border">
-              {filtered.map((p) => (
-                <tr key={p.name}>
-                  <td className="py-1.5 font-mono">{p.name}</td>
-                  <td className="text-slate-400 font-mono">{p.version}</td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={2} className="py-6 text-center text-slate-600">no matches</td></tr>
-              )}
-            </tbody>
-          </table>
+          <div className="table-panel">
+            <table className="tbl">
+              <thead>
+                <tr><th>Package</th><th className="text-right">Version</th></tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.name}>
+                    <td className="font-mono text-[13px] text-ink-secondary">{p.name}</td>
+                    <td className="text-right font-mono text-[13px] text-ink-muted">{p.version}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

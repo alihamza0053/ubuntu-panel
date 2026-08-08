@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
 import LiveLog from '../components/LiveLog'
+import PageHeader from '../components/PageHeader'
 import StatusBadge from '../components/StatusBadge'
 import { useAuth } from '../context/AuthContext'
 
@@ -9,6 +11,18 @@ const CATEGORY_ORDER = [
   'Media & Library', 'Productivity', 'Utilities', 'Monitoring', 'Notifications',
   'Browsers & Misc', 'Other',
 ]
+
+/**
+ * Catalog glyph. The backend ships a per-app character as content; it sits in a
+ * neutral tile so it reads as an app logo rather than UI chrome.
+ */
+function AppGlyph({ glyph, size = 'md' }) {
+  return (
+    <span className={`icon-tile ${size === 'sm' ? 'h-8 w-8 text-sm' : 'text-base'} text-ink-secondary`}>
+      {glyph || <Icon name="grid" size={16} />}
+    </span>
+  )
+}
 
 /**
  * Apps section: one-click install of self-hosted apps (VS Code/code-server,
@@ -84,61 +98,76 @@ export default function Apps() {
   }, [catalog, query])
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Apps</h2>
+    <div>
+      <PageHeader
+        title="Apps"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Apps' }]}
+        lead="One-click installs for self-hosted apps, plus any Docker Hub image you want to run."
+      />
 
       {/* Installer not deployed warning */}
       {!ready && (
-        <div className="card border-yellow-600/50 bg-yellow-500/5">
-          <p className="text-sm text-yellow-300 font-semibold">⚠️ App installer not enabled on this server yet</p>
-          <p className="text-sm text-slate-400 mt-1">
+        <div className="card mb-6 border-amber-500/40 bg-amber-500/[0.06]">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+            <Icon name="alert" size={15} /> App installer not enabled on this server yet
+          </p>
+          <p className="hint mt-2">
             Installs run through one whitelisted root script (the panel can't run arbitrary
             commands as root). Deploy it once, then installs will work:
           </p>
-          <pre className="mt-2 bg-black text-slate-300 text-xs p-2 rounded">cd /opt/serverhub-src && sudo bash deploy/update.sh</pre>
+          <pre className="mt-3 overflow-x-auto rounded-lg border border-panel-border/70 bg-panel-ink p-3
+                          font-mono text-xs text-mint-300">cd /opt/serverhub-src &amp;&amp; sudo bash deploy/update.sh</pre>
         </div>
       )}
 
       {/* Run any Docker Hub image */}
       <div className="card">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h3 className="font-semibold">🐳 Run any Docker image</h3>
-            <p className="text-xs text-slate-500">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="sec-title">Run any Docker image</h3>
+            <p className="hint mt-1.5">
               Pull any Docker Hub image and run it on a port (you can run several).
               Needs the Docker Engine app.
             </p>
           </div>
-          <button className="btn-secondary" onClick={() => setShowCustom((v) => !v)}>
-            {showCustom ? 'Close' : '＋ New container'}
+          <button className="btn-secondary shrink-0" onClick={() => setShowCustom((v) => !v)}>
+            <Icon name={showCustom ? 'x' : 'plus'} size={14} />
+            {showCustom ? 'Close' : 'New container'}
           </button>
         </div>
+
         {showCustom && (
-          <form onSubmit={runCustom} className="mt-3 grid sm:grid-cols-2 gap-3">
+          <form onSubmit={runCustom} className="mt-5 grid animate-fade-up gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Image *</label>
+              <label className="label">Image *</label>
               <input className="input font-mono" placeholder="e.g. nginx:latest or user/app:tag"
                 value={custom.image} onChange={(e) => setCustom({ ...custom, image: e.target.value })} required />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Container port *</label>
-              <input className="input" type="number" placeholder="e.g. 80"
+              <label className="label">Container port *</label>
+              <input className="input font-mono" type="number" placeholder="e.g. 80"
                 value={custom.container_port} onChange={(e) => setCustom({ ...custom, container_port: e.target.value })} required />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Name (optional)</label>
-              <input className="input" placeholder="my-app"
+              <label className="label">Name (optional)</label>
+              <input className="input font-mono" placeholder="my-app"
                 value={custom.name} onChange={(e) => setCustom({ ...custom, name: e.target.value })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-slate-400 mb-1">Environment variables (optional, one KEY=value per line)</label>
-              <textarea className="input font-mono text-sm h-20" placeholder={'TZ=UTC\nFOO=bar'}
+              <label className="label">Environment variables (one KEY=value per line)</label>
+              <textarea className="input h-20 font-mono text-[13px]" placeholder={'TZ=UTC\nFOO=bar'}
                 value={custom.env} onChange={(e) => setCustom({ ...custom, env: e.target.value })} />
             </div>
-            <div className="sm:col-span-2 flex items-center gap-2">
-              <button type="submit" className="btn-primary" disabled={!dockerReady}>⬇ Pull &amp; run</button>
-              {!dockerReady && <span className="text-xs text-yellow-500">Install the Docker Engine app first</span>}
-              <span className="text-xs text-slate-600">
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+              <button type="submit" className="btn-primary" disabled={!dockerReady}>
+                <Icon name="download" size={14} /> Pull &amp; run
+              </button>
+              {!dockerReady && (
+                <span className="badge badge-amber">
+                  <Icon name="alert" size={12} /> Install the Docker Engine app first
+                </span>
+              )}
+              <span className="hint">
                 The container’s port is proxied to localhost; assign a domain after it’s running.
               </span>
             </div>
@@ -148,71 +177,81 @@ export default function Apps() {
 
       {/* Live install output */}
       {installWs && (
-        <div className="card">
-          <h3 className="font-semibold mb-2">Installing…</h3>
+        <div className="card mt-4">
+          <h3 className="sec-title mb-2">Installing…</h3>
           <LiveLog path={installWs} onClose={refresh} />
         </div>
       )}
 
       {/* Installed apps */}
-      <div>
-        <h3 className="text-lg font-semibold mb-3">Installed</h3>
+      <section className="mt-8">
+        <h3 className="sec-title mb-4">Installed</h3>
         {installed.length === 0 ? (
-          <div className="card text-center py-8 text-slate-600">
-            No apps installed yet — install one from the catalog below.
+          <div className="empty">
+            <Icon name="package" size={26} />
+            <p>No apps installed yet — install one from the catalog below.</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {installed.map((app) => (
               <InstalledApp key={app.id} app={app} onChanged={refresh} />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Catalog grouped by category */}
-      <div>
-        <div className="flex items-center gap-3 mb-3 flex-wrap">
-          <h3 className="text-lg font-semibold">Catalog</h3>
-          <input
-            className="input max-w-xs ml-auto"
-            placeholder="🔎 Search apps…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+      <section className="mt-8">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <h3 className="sec-title">Catalog</h3>
+          <div className="ml-auto relative max-w-xs flex-1">
+            <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+            <input
+              className="input pl-9"
+              placeholder="Search apps…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
         </div>
+
         {grouped.length === 0 && (
-          <p className="text-slate-600 text-sm">No apps match “{query}”.</p>
+          <div className="empty">
+            <Icon name="search" size={26} />
+            <p>No apps match “{query}”.</p>
+          </div>
         )}
+
         {grouped.map(([category, apps]) => (
-          <div key={category} className="mb-6">
-            <p className="text-sm font-semibold text-slate-400 mb-2">{category}</p>
-            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div key={category} className="mb-8">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim">{category}</p>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {apps.map((c) => (
-                <div key={c.slug} className="card">
+                <div key={c.slug} className="card card-hover flex flex-col">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{c.icon}</span>
+                    <AppGlyph glyph={c.icon} />
                     <div className="min-w-0">
-                      <p className="font-semibold">{c.name}</p>
-                      <p className="text-xs text-slate-500">{c.description}</p>
+                      <p className="font-semibold text-ink-primary">{c.name}</p>
+                      <p className="hint mt-0.5">{c.description}</p>
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-slate-600">
+                  <div className="mt-4 flex items-center gap-2 pt-1">
+                    <span className="text-[11px] text-ink-faint">
                       {c.kind === 'tool' ? 'tool / dependency'
-                        : c.kind === 'docker' ? (c.web_ui === false ? '🐳 backend' : '🐳 docker')
-                        : c.kind === 'compose' ? '🐳 compose stack'
+                        : c.kind === 'docker' ? (c.web_ui === false ? 'docker backend' : 'docker')
+                        : c.kind === 'compose' ? 'compose stack'
                         : 'runs on a port'}
                     </span>
                     {c.installed ? (
-                      <span className="badge bg-green-500/15 text-green-400 ml-auto">installed</span>
+                      <span className="badge badge-mint ml-auto"><span className="dot" /> installed</span>
                     ) : (c.kind === 'docker' || c.kind === 'compose') && !dockerReady ? (
-                      <span className="text-xs text-yellow-500 ml-auto" title="Install the Docker Engine app first">
+                      <span className="badge badge-amber ml-auto" title="Install the Docker Engine app first">
                         needs Docker
                       </span>
                     ) : (
-                      <button className="btn-primary ml-auto" onClick={() => install(c)}>
-                        {c.multi ? '⬇ Install instance' : '⬇ Install'}
+                      <button className="btn-primary btn-sm ml-auto" onClick={() => install(c)}>
+                        <Icon name="download" size={13} />
+                        {c.multi ? 'Install instance' : 'Install'}
                       </button>
                     )}
                   </div>
@@ -221,7 +260,7 @@ export default function Apps() {
             </div>
           </div>
         ))}
-      </div>
+      </section>
     </div>
   )
 }
@@ -327,16 +366,16 @@ function InstalledApp({ app, onChanged }) {
   const isRunnable = app.kind !== 'tool'
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xl">{app.icon}</span>
-          <span className="font-semibold truncate">{app.name}</span>
+    <div className="card card-hover flex flex-col">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <AppGlyph glyph={app.icon} size="sm" />
+          <span className="truncate font-semibold text-ink-primary">{app.name}</span>
         </div>
-        <span className="flex items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           {app.hidden && (
-            <span className="badge bg-slate-500/15 text-slate-400" title="Only admins can see this app">
-              🙈 hidden
+            <span className="badge badge-neutral" title="Only admins can see this app">
+              <Icon name="eye-off" size={12} /> hidden
             </span>
           )}
           {isRunnable && <StatusBadge status={app.status} />}
@@ -345,41 +384,47 @@ function InstalledApp({ app, onChanged }) {
 
       {isRunnable ? (
         <>
-          <dl className="mt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between gap-2">
-              <dt className="text-slate-500">{app.web_ui === false ? 'Port' : 'URL'}</dt>
-              <dd className="text-right">
+          <dl className="mt-4 space-y-2 text-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 text-ink-dim">{app.web_ui === false ? 'Port' : 'URL'}</dt>
+              <dd className="min-w-0 truncate text-right">
                 {app.web_ui === false ? (
-                  <span className="font-mono text-slate-300" title="Backend service — connect other apps to this port">
-                    127.0.0.1:{app.port} <span className="text-xs text-slate-600">(backend)</span>
+                  <span className="font-mono text-[13px] text-ink-body" title="Backend service — connect other apps to this port">
+                    127.0.0.1:{app.port} <span className="text-[11px] text-ink-faint">(backend)</span>
                   </span>
                 ) : app.domain ? (
-                  <a href={liveUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
-                    {app.domain} ↗
+                  <a href={liveUrl} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1">
+                    {app.domain} <Icon name="external-link" size={12} />
                   </a>
                 ) : (
-                  <span className="text-slate-400" title="Port is localhost-only — assign a domain to reach it">
-                    :{app.port} <span className="text-xs text-slate-600">(internal — assign a domain)</span>
+                  <span className="text-ink-muted" title="Port is localhost-only — assign a domain to reach it">
+                    :{app.port} <span className="text-[11px] text-ink-faint">(internal)</span>
                   </span>
                 )}
               </dd>
             </div>
+
             {app.username && (
-              <div className="flex justify-between">
-                <dt className="text-slate-500">Username</dt>
-                <dd className="font-mono text-slate-200">{app.username}</dd>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-ink-dim">Username</dt>
+                <dd className="font-mono text-[13px] text-ink-secondary">{app.username}</dd>
               </div>
             )}
+
             {(app.secret || app.can_set_password) && (
-              <div className="flex justify-between gap-2">
-                <dt className="text-slate-500">{app.secret_label || 'Password'}</dt>
-                <dd className="font-mono text-yellow-400 flex items-center gap-2">
-                  {app.secret
-                    ? (reveal ? app.secret : '••••••••')
-                    : <span className="text-slate-500">not set</span>}
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="shrink-0 text-ink-dim">{app.secret_label || 'Password'}</dt>
+                <dd className="flex min-w-0 items-center justify-end gap-1.5">
+                  <span className="truncate font-mono text-[13px] text-amber-300">
+                    {app.secret
+                      ? (reveal ? app.secret : '••••••••')
+                      : <span className="text-ink-faint">not set</span>}
+                  </span>
                   {app.secret && (
-                    <button className="text-xs text-slate-500 hover:text-slate-300"
-                      onClick={() => setReveal((v) => !v)}>{reveal ? 'hide' : 'show'}</button>
+                    <button className="btn-icon h-6 w-6" title={reveal ? 'Hide' : 'Show'}
+                      onClick={() => setReveal((v) => !v)}>
+                      <Icon name={reveal ? 'eye-off' : 'eye'} size={13} />
+                    </button>
                   )}
                 </dd>
               </div>
@@ -387,44 +432,58 @@ function InstalledApp({ app, onChanged }) {
           </dl>
 
           {app.can_set_password && (
-            <div className="mt-2">
+            <div className="mt-3">
               {showPwForm ? (
-                <div className="flex gap-2 items-center flex-wrap">
-                  <input className="input py-1 max-w-[14rem] font-mono" placeholder="new password"
+                <div className="flex animate-fade-up flex-wrap items-center gap-2">
+                  <input className="input max-w-[13rem] py-1.5 font-mono text-[13px]" placeholder="new password"
                     value={newPw} onChange={(e) => setNewPw(e.target.value)} />
-                  <button className="btn-secondary" onClick={generatePw} title="Generate a strong password">🎲 Generate</button>
-                  <button className="btn-primary" onClick={setPassword} disabled={newPw.length < 4}>Set</button>
-                  <button className="btn-secondary" onClick={() => { setShowPwForm(false); setNewPw('') }}>Cancel</button>
+                  <button className="btn-icon" onClick={generatePw} title="Generate a strong password">
+                    <Icon name="dice" size={15} />
+                  </button>
+                  <button className="btn-primary btn-sm" onClick={setPassword} disabled={newPw.length < 4}>Set</button>
+                  <button className="btn-ghost btn-sm" onClick={() => { setShowPwForm(false); setNewPw('') }}>Cancel</button>
                 </div>
               ) : (
-                <button className="text-xs text-sky-400 hover:underline" onClick={() => setShowPwForm(true)}>
-                  ✎ change {(app.secret_label || 'password').toLowerCase()}
+                <button className="link inline-flex items-center gap-1 text-xs" onClick={() => setShowPwForm(true)}>
+                  <Icon name="edit" size={12} /> change {(app.secret_label || 'password').toLowerCase()}
                 </button>
               )}
             </div>
           )}
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button className="btn-secondary" onClick={() => action('start')}>▶ Start</button>
-            <button className="btn-secondary" onClick={() => action('stop')}>⏹ Stop</button>
-            <button className="btn-secondary" onClick={() => action('restart')}>🔄 Restart</button>
-            <button className="btn-secondary" onClick={() => setShowLog((v) => !v)}>📜 Logs</button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button className="btn-secondary btn-sm" onClick={() => action('start')}>
+              <Icon name="play" size={13} /> Start
+            </button>
+            <button className="btn-secondary btn-sm" onClick={() => action('stop')}>
+              <Icon name="stop" size={13} /> Stop
+            </button>
+            <button className="btn-secondary btn-sm" onClick={() => action('restart')}>
+              <Icon name="refresh" size={13} /> Restart
+            </button>
+            <button className="btn-secondary btn-sm" onClick={() => setShowLog((v) => !v)}>
+              <Icon name="scroll" size={13} /> Logs
+            </button>
             {app.has_credentials && (
-              <button className="btn-secondary" onClick={toggleCreds}>🔑 Credentials</button>
+              <button className="btn-secondary btn-sm" onClick={toggleCreds}>
+                <Icon name="key" size={13} /> Credentials
+              </button>
             )}
           </div>
 
           {creds && (
-            <div className="mt-3 rounded-lg border border-panel-border bg-slate-900 p-3 space-y-1.5">
-              <p className="text-xs text-slate-500 mb-1">All credentials (from the stack's config)</p>
+            <div className="surface mt-3 animate-fade-up space-y-2">
+              <p className="label !mb-2">All credentials (from the stack's config)</p>
               {creds.map((c) => (
                 <div key={c.label} className="flex items-start justify-between gap-3 text-xs">
-                  <span className="text-slate-400 shrink-0">{c.label}</span>
-                  <span className="font-mono text-yellow-300 break-all text-right flex items-center gap-1">
-                    {c.value || <span className="text-slate-600">—</span>}
+                  <span className="shrink-0 text-ink-muted">{c.label}</span>
+                  <span className="flex items-center gap-1 break-all text-right font-mono text-amber-300">
+                    {c.value || <span className="text-ink-faint">—</span>}
                     {c.value && (
-                      <button className="text-slate-500 hover:text-slate-200"
-                        onClick={() => navigator.clipboard?.writeText(c.value)} title="Copy">⧉</button>
+                      <button className="btn-icon h-6 w-6"
+                        onClick={() => navigator.clipboard?.writeText(c.value)} title="Copy">
+                        <Icon name="copy" size={12} />
+                      </button>
                     )}
                   </span>
                 </div>
@@ -433,11 +492,13 @@ function InstalledApp({ app, onChanged }) {
           )}
 
           {app.web_ui !== false && (
-            <div className="mt-3 flex gap-2 items-center flex-wrap">
-              <input className="input max-w-[12rem] py-1" placeholder="app.example.com"
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <input className="input max-w-[11rem] py-1.5 text-[13px]" placeholder="app.example.com"
                 value={domain} onChange={(e) => setDomain(e.target.value)} />
-              <button className="btn-secondary" onClick={assignDomain} disabled={!domain}>Domain</button>
-              <button className="btn-secondary" onClick={requestSsl} disabled={!app.domain}>🔒 SSL</button>
+              <button className="btn-secondary btn-sm" onClick={assignDomain} disabled={!domain}>Domain</button>
+              <button className="btn-secondary btn-sm" onClick={requestSsl} disabled={!app.domain}>
+                <Icon name="lock" size={13} /> SSL
+              </button>
             </div>
           )}
 
@@ -446,19 +507,20 @@ function InstalledApp({ app, onChanged }) {
       ) : app.slug === 'onedrive' ? (
         <OneDriveSetup />
       ) : (
-        <p className="mt-3 text-sm text-slate-500">Installed tool — no web UI to run.</p>
+        <p className="hint mt-3">Installed tool — no web UI to run.</p>
       )}
 
-      {msg && <p className="mt-2 text-xs text-slate-400 break-words">{msg}</p>}
+      {msg && <p className="mt-3 break-words text-xs text-ink-muted">{msg}</p>}
 
-      <div className="mt-3 flex justify-end gap-3">
+      <div className="mt-4 flex justify-end gap-3 border-t border-panel-border/50 pt-3">
         {isAdmin && (
-          <button onClick={toggleHidden} className="text-xs text-slate-400 hover:underline"
+          <button onClick={toggleHidden} className="act inline-flex items-center gap-1"
             title={app.hidden ? 'Hidden from non-admins — click to unhide' : 'Hide from non-admins'}>
-            {app.hidden ? '🙈 unhide' : '👁 hide'}
+            <Icon name={app.hidden ? 'eye-off' : 'eye'} size={12} />
+            {app.hidden ? 'unhide' : 'hide'}
           </button>
         )}
-        <button onClick={uninstall} className="text-xs text-red-400 hover:underline">remove</button>
+        <button onClick={uninstall} className="act-danger">remove</button>
       </div>
     </div>
   )
@@ -532,76 +594,83 @@ function OneDriveSetup() {
     }
   }
 
-  if (!status) return <p className="mt-3 text-sm text-slate-500">Loading…</p>
+  if (!status) return <p className="hint mt-3">Loading…</p>
 
   return (
-    <div className="mt-3 space-y-3">
-      <dl className="space-y-1.5 text-sm">
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Authorized</dt>
-          <dd className={status.authorized ? 'text-green-400' : 'text-yellow-400'}>
+    <div className="mt-4 space-y-4">
+      <dl className="space-y-2 text-sm">
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-dim">Authorized</dt>
+          <dd className={status.authorized ? 'text-mint-300' : 'text-amber-300'}>
             {status.authorized ? 'yes' : 'not yet'}
           </dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Sync monitor</dt>
-          <dd className="text-slate-200">{status.monitor}</dd>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-dim">Sync monitor</dt>
+          <dd className="text-ink-secondary">{status.monitor}</dd>
         </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Folder</dt>
-          <dd className="font-mono text-slate-300">{status.sync_dir}</dd>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="shrink-0 text-ink-dim">Folder</dt>
+          <dd className="min-w-0 truncate font-mono text-[13px] text-ink-body">{status.sync_dir}</dd>
         </div>
       </dl>
 
       {!status.authorized ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {!authUrl ? (
             <button className="btn-primary" disabled={busy} onClick={startAuth}>
-              {busy ? 'Starting…' : '🔑 Authorize OneDrive'}
+              <Icon name="key" size={14} />
+              {busy ? 'Starting…' : 'Authorize OneDrive'}
             </button>
           ) : (
-            <div className="space-y-2 rounded-lg border border-panel-border bg-slate-900 p-3">
-              <p className="text-xs text-slate-400">
-                1. Open this URL, sign in, and approve access:
-              </p>
+            <div className="surface animate-fade-up space-y-3">
+              <p className="hint">1. Open this URL, sign in, and approve access:</p>
               <a href={authUrl} target="_blank" rel="noreferrer"
-                 className="text-sky-400 hover:underline text-xs break-all block">
-                {authUrl} ↗
+                 className="link block break-all text-xs">
+                {authUrl}
               </a>
-              <p className="text-xs text-slate-400">
+              <p className="hint">
                 2. After approving, your browser lands on a blank page. Copy that page’s
                 full URL from the address bar and paste it here:
               </p>
               <input
-                className="input w-full font-mono text-xs"
+                className="input font-mono text-xs"
                 placeholder="https://login.microsoftonline.com/.../nativeclient?code=…"
                 value={responseUrl}
                 onChange={(e) => setResponseUrl(e.target.value)}
               />
               <button className="btn-primary" disabled={busy || !responseUrl} onClick={completeAuth}>
-                {busy ? 'Finishing…' : '✓ Finish & start syncing'}
+                <Icon name="check" size={14} />
+                {busy ? 'Finishing…' : 'Finish & start syncing'}
               </button>
             </div>
           )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            <button className="btn-secondary" onClick={() => monitor('start')}>▶ Start</button>
-            <button className="btn-secondary" onClick={() => monitor('stop')}>⏹ Stop</button>
-            <button className="btn-secondary" onClick={() => monitor('restart')}>🔄 Sync now</button>
-            <button className="btn-secondary" disabled={status.resyncing} onClick={resync}>
-              {status.resyncing ? '⏳ Resyncing…' : '⬇ Pull shared items (resync)'}
+            <button className="btn-secondary btn-sm" onClick={() => monitor('start')}>
+              <Icon name="play" size={13} /> Start
+            </button>
+            <button className="btn-secondary btn-sm" onClick={() => monitor('stop')}>
+              <Icon name="stop" size={13} /> Stop
+            </button>
+            <button className="btn-secondary btn-sm" onClick={() => monitor('restart')}>
+              <Icon name="refresh" size={13} /> Sync now
+            </button>
+            <button className="btn-secondary btn-sm" disabled={status.resyncing} onClick={resync}>
+              <Icon name={status.resyncing ? 'clock' : 'download'} size={13} />
+              {status.resyncing ? 'Resyncing…' : 'Pull shared items'}
             </button>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="hint">
             Files others shared with you (Work/School) only appear after a one-time
-            <b> resync</b>.
+            <b className="text-ink-secondary"> resync</b>.
           </p>
         </div>
       )}
 
-      {msg && <p className="text-xs text-slate-400 break-words">{msg}</p>}
+      {msg && <p className="break-words text-xs text-ink-muted">{msg}</p>}
     </div>
   )
 }

@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { wsUrl } from '../api/ws'
 
-// Colour log lines: failures red, successes green, pipeline markers brighter.
+// Colour log lines: failures red, successes mint, system/pipeline markers aqua.
 function lineColor(line) {
   const l = line.toLowerCase()
   if (line.includes('✗') || l.includes('failed') || l.includes('error') || l.includes('traceback')) {
-    return 'text-red-400'
+    return 'log-err'
   }
   if (line.includes('✓') || l.includes('status=success') || l.includes(' ok')) {
-    return 'text-green-400'
+    return 'log-ok'
   }
   if (line.includes('[pipeline]') || line.includes('[serverhub]')) {
-    return 'text-sky-300'
+    return 'log-sys'
   }
-  return 'text-slate-300'
+  return ''
 }
 
 /**
@@ -54,24 +54,20 @@ export default function LiveLog({ path, onClose }) {
   if (!path) return null
 
   return (
-    <div className="mt-3 rounded-lg border border-panel-border overflow-hidden">
-      <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5 text-xs">
-        <span className={connected ? 'text-green-400' : 'text-slate-500'}>
-          {connected ? '● live' : '○ closed'}
+    <div className="log-pane mt-3">
+      <div className="log-head">
+        <span className={`flex items-center gap-2 font-medium ${connected ? 'text-mint-300' : 'text-ink-dim'}`}>
+          <span className={connected ? 'dot-pulse' : 'dot'} />
+          {connected ? 'live' : 'closed'}
         </span>
-        <button onClick={() => setLines([])} className="text-slate-500 hover:text-slate-300">
-          clear
-        </button>
+        <button onClick={() => setLines([])} className="act">clear</button>
       </div>
-      <div
-        ref={boxRef}
-        className="bg-black text-green-300 text-xs font-mono p-3 h-64 overflow-y-auto whitespace-pre-wrap"
-      >
+      <div ref={boxRef} className="log-body h-64">
         {lines.length
           ? lines.map((line, i) => (
-              <div key={i} className={lineColor(line)}>{line || ' '}</div>
+              <div key={i} className={lineColor(line)}>{line || ' '}</div>
             ))
-          : 'Waiting for output…'}
+          : <span className="text-ink-faint">Waiting for output…</span>}
       </div>
     </div>
   )

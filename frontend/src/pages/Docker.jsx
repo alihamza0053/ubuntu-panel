@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
 import LiveLog from '../components/LiveLog'
+import PageHeader from '../components/PageHeader'
 
 /**
  * Docker manager: live view of all containers, images and volumes with
@@ -51,12 +53,15 @@ export default function Docker() {
 
   if (!data.ready) {
     return (
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Docker</h2>
-        <div className="card border-yellow-600/50 bg-yellow-500/5">
-          <p className="text-sm text-yellow-300 font-semibold">Docker isn't installed</p>
-          <p className="text-sm text-slate-400 mt-1">
-            Install the <b>Docker Engine</b> app from the <a href="/apps" className="text-sky-400 hover:underline">Apps</a> page, then manage containers here.
+      <div>
+        <PageHeader title="Docker" crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Docker' }]} />
+        <div className="card border-amber-500/40 bg-amber-500/[0.06]">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-300">
+            <Icon name="alert" size={15} /> Docker isn't installed
+          </p>
+          <p className="hint mt-2">
+            Install the <b className="text-ink-secondary">Docker Engine</b> app from the{' '}
+            <a href="/apps" className="link">Apps</a> page, then manage containers here.
           </p>
         </div>
       </div>
@@ -64,123 +69,184 @@ export default function Docker() {
   }
 
   const TABS = [
-    ['containers', `Containers (${data.containers.length})`],
-    ['images', `Images (${data.images.length})`],
-    ['volumes', `Volumes (${data.volumes.length})`],
+    ['containers', 'Containers', data.containers.length],
+    ['images', 'Images', data.images.length],
+    ['volumes', 'Volumes', data.volumes.length],
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
-        <h2 className="text-2xl font-bold">Docker</h2>
-        <button className="btn-secondary ml-auto" onClick={refresh}>↻ Refresh</button>
-        <button className="btn-secondary" onClick={prune}>🧹 Prune</button>
-      </div>
-      {msg && <p className="text-sm text-slate-400 break-words">{msg}</p>}
+    <div>
+      <PageHeader
+        title="Docker"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Docker' }]}
+        lead="Every container, image and volume on this server — including the ones the panel installed."
+        actions={
+          <>
+            <button className="btn-secondary" onClick={refresh}>
+              <Icon name="refresh" size={14} /> Refresh
+            </button>
+            <button className="btn-secondary" onClick={prune}>
+              <Icon name="clean" size={14} /> Prune
+            </button>
+          </>
+        }
+      />
 
-      <div className="flex gap-1 border-b border-panel-border">
-        {TABS.map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-2 text-sm border-b-2 -mb-px ${
-              tab === k ? 'border-sky-400 text-sky-300' : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}>{label}</button>
+      {msg && <p className="mb-4 break-words text-sm text-ink-muted">{msg}</p>}
+
+      <div className="tabs">
+        {TABS.map(([k, label, count]) => (
+          <button key={k} onClick={() => setTab(k)} className={`tab ${tab === k ? 'tab-active' : ''}`}>
+            {label}
+            <span className="tab-count">{count}</span>
+          </button>
         ))}
       </div>
 
-      {/* Containers */}
-      {tab === 'containers' && (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                <th className="py-2">Name</th><th>Image</th><th>State</th><th>Ports</th><th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-panel-border">
-              {data.containers.map((c) => (
-                <tr key={c.id}>
-                  <td className="py-2 font-mono">
-                    {c.managed && <span title="Installed via the panel">🔗 </span>}{c.name}
-                  </td>
-                  <td className="text-slate-400 font-mono text-xs">{c.image}</td>
-                  <td>
-                    <span className={`badge ${c.state === 'running' ? 'bg-green-500/15 text-green-400' : 'bg-slate-500/20 text-slate-400'}`}>
-                      {c.state}
-                    </span>
-                  </td>
-                  <td className="text-xs text-slate-500 font-mono">{c.ports}</td>
-                  <td className="text-right space-x-2 whitespace-nowrap">
-                    {c.state === 'running'
-                      ? <button onClick={() => containerAction(c.id, 'stop')} className="text-slate-400 hover:underline">stop</button>
-                      : <button onClick={() => containerAction(c.id, 'start')} className="text-green-400 hover:underline">start</button>}
-                    <button onClick={() => containerAction(c.id, 'restart')} className="text-sky-400 hover:underline">restart</button>
-                    <button onClick={() => setLogId(logId === c.id ? null : c.id)} className="text-slate-400 hover:underline">logs</button>
-                    <button onClick={() => containerAction(c.id, 'remove')} className="text-red-400 hover:underline">remove</button>
-                  </td>
-                </tr>
-              ))}
-              {data.containers.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-slate-600">No containers</td></tr>}
-            </tbody>
-          </table>
-          {logId && (
-            <div className="mt-3">
-              <p className="text-xs text-slate-500 mb-1">Logs — {logId.slice(0, 12)}</p>
-              <LiveLog path={`/ws/docker/containers/${logId}/logs`} />
+      <div className="mt-5 panel-enter" key={tab}>
+        {/* Containers */}
+        {tab === 'containers' && (
+          <>
+            <div className="table-panel">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Name</th><th>Image</th><th>State</th><th>Ports</th><th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.containers.map((c) => (
+                    <tr key={c.id}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <span className={`icon-tile ${c.state === 'running' ? 'tile-mint' : ''}`}>
+                            <Icon name="container" size={16} />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-mono text-[13px] text-ink-primary">{c.name}</p>
+                            <p className="text-[11px] text-ink-faint">
+                              {c.managed ? 'installed via the panel' : c.id.slice(0, 12)}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="font-mono text-xs text-ink-muted">{c.image}</td>
+                      <td>
+                        <span className={`badge ${c.state === 'running' ? 'badge-mint' : 'badge-neutral'}`}>
+                          <span className={c.state === 'running' ? 'dot-pulse' : 'dot'} />
+                          {c.state}
+                        </span>
+                      </td>
+                      <td className="font-mono text-xs text-ink-faint">{c.ports}</td>
+                      <td className="col-actions">
+                        <div className="inline-flex items-center gap-1">
+                          {c.state === 'running' ? (
+                            <button onClick={() => containerAction(c.id, 'stop')} className="btn-icon" title="Stop">
+                              <Icon name="stop" size={14} />
+                            </button>
+                          ) : (
+                            <button onClick={() => containerAction(c.id, 'start')} className="btn-icon" title="Start">
+                              <Icon name="play" size={14} />
+                            </button>
+                          )}
+                          <button onClick={() => containerAction(c.id, 'restart')} className="btn-icon" title="Restart">
+                            <Icon name="refresh" size={15} />
+                          </button>
+                          <button onClick={() => setLogId(logId === c.id ? null : c.id)}
+                            className={`btn-icon ${logId === c.id ? 'text-mint-300' : ''}`} title="Logs">
+                            <Icon name="scroll" size={15} />
+                          </button>
+                          <button onClick={() => containerAction(c.id, 'remove')} className="btn-icon-danger" title="Remove">
+                            <Icon name="trash" size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {data.containers.length === 0 && (
+                    <tr><td colSpan={5} className="py-8 text-center text-ink-faint">No containers</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Images */}
-      {tab === 'images' && (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                <th className="py-2">Image</th><th>Size</th><th>Created</th><th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-panel-border">
-              {data.images.map((i) => (
-                <tr key={i.id}>
-                  <td className="py-2 font-mono text-xs">{i.name}</td>
-                  <td className="text-slate-400">{i.size}</td>
-                  <td className="text-slate-500 text-xs">{i.created}</td>
-                  <td className="text-right">
-                    <button onClick={() => removeImage(i.id)} className="text-red-400 hover:underline">remove</button>
-                  </td>
-                </tr>
-              ))}
-              {data.images.length === 0 && <tr><td colSpan={4} className="py-6 text-center text-slate-600">No images</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
+            {logId && (
+              <div className="mt-4">
+                <p className="label">Logs — {logId.slice(0, 12)}</p>
+                <LiveLog path={`/ws/docker/containers/${logId}/logs`} />
+              </div>
+            )}
+          </>
+        )}
 
-      {/* Volumes */}
-      {tab === 'volumes' && (
-        <div className="card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                <th className="py-2">Volume</th><th>Driver</th><th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-panel-border">
-              {data.volumes.map((v) => (
-                <tr key={v.name}>
-                  <td className="py-2 font-mono text-xs">{v.name}</td>
-                  <td className="text-slate-400">{v.driver}</td>
-                  <td className="text-right">
-                    <button onClick={() => removeVolume(v.name)} className="text-red-400 hover:underline">remove</button>
-                  </td>
-                </tr>
-              ))}
-              {data.volumes.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-slate-600">No volumes</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {/* Images */}
+        {tab === 'images' && (
+          <div className="table-panel">
+            <table className="tbl">
+              <thead>
+                <tr><th>Image</th><th>Size</th><th>Created</th><th className="text-right">Actions</th></tr>
+              </thead>
+              <tbody>
+                {data.images.map((i) => (
+                  <tr key={i.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <span className="icon-tile tile-aqua"><Icon name="layers" size={16} /></span>
+                        <div className="min-w-0">
+                          <p className="truncate font-mono text-[13px] text-ink-primary">{i.name}</p>
+                          <p className="text-[11px] text-ink-faint">{i.id.slice(0, 12)}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-ink-muted">{i.size}</td>
+                    <td className="text-xs text-ink-faint">{i.created}</td>
+                    <td className="col-actions">
+                      <button onClick={() => removeImage(i.id)} className="btn-icon-danger" title="Remove">
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {data.images.length === 0 && (
+                  <tr><td colSpan={4} className="py-8 text-center text-ink-faint">No images</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Volumes */}
+        {tab === 'volumes' && (
+          <div className="table-panel">
+            <table className="tbl">
+              <thead>
+                <tr><th>Volume</th><th>Driver</th><th className="text-right">Actions</th></tr>
+              </thead>
+              <tbody>
+                {data.volumes.map((v) => (
+                  <tr key={v.name}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <span className="icon-tile tile-violet"><Icon name="disk" size={16} /></span>
+                        <span className="truncate font-mono text-[13px] text-ink-primary">{v.name}</span>
+                      </div>
+                    </td>
+                    <td className="text-ink-muted">{v.driver}</td>
+                    <td className="col-actions">
+                      <button onClick={() => removeVolume(v.name)} className="btn-icon-danger" title="Remove">
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {data.volumes.length === 0 && (
+                  <tr><td colSpan={3} className="py-8 text-center text-ink-faint">No volumes</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

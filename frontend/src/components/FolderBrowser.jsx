@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api, { errorMessage } from '../api/client'
-import SpreadsheetModal from './SpreadsheetModal'
 import EditorModal from './EditorModal'
+import Icon from './Icon'
 import ProgressBar from './ProgressBar'
+import SpreadsheetModal from './SpreadsheetModal'
 
 const EDITABLE_EXT = ['.py', '.txt', '.json', '.yaml', '.yml', '.md', '.toml', '.cfg', '.ini', '.log', '.sh', '.js', '.html', '.css', '.xml', '.sql', '.php', '.conf']
 function isEditable(name) {
@@ -24,6 +25,14 @@ const SPREADSHEET_EXT = ['.csv', '.xlsx', '.xls']
 function isSpreadsheet(name) {
   const n = name.toLowerCase()
   return SPREADSHEET_EXT.some((ext) => n.endsWith(ext))
+}
+
+/** Icon + tile tint for one entry, by kind. */
+function tileFor(entry) {
+  if (entry.is_dir) return { icon: 'folder', tint: 'tile-mint' }
+  if (isSpreadsheet(entry.name)) return { icon: 'table', tint: 'tile-aqua' }
+  if (isEditable(entry.name)) return { icon: 'file-text', tint: 'tile-violet' }
+  return { icon: 'file', tint: '' }
 }
 
 /**
@@ -132,26 +141,33 @@ export default function FolderBrowser({ rootPath, accept, viewer = true, editabl
     if (files.length) upload(files)
   }
 
-  function iconFor(entry) {
-    if (entry.is_dir) return '📁'
-    const n = entry.name.toLowerCase()
-    if (n.endsWith('.xlsx') || n.endsWith('.xls')) return '📊'
-    return '📄'
+  /** Click target for an entry name — folders navigate, files open where possible. */
+  function activate(entry) {
+    if (entry.is_dir) return () => browse(entry.path)
+    if (viewer && isSpreadsheet(entry.name)) return () => setViewing(entry)
+    if (editable && isEditable(entry.name)) return () => setEditing(entry.path)
+    return null
   }
 
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-3 text-sm flex-wrap">
-        <button className="btn-secondary py-1" onClick={() => browse(rootPath)}>🏠 {rootName}</button>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <button className="btn-secondary btn-sm" onClick={() => browse(rootPath)}>
+          <Icon name="home" size={13} /> {rootName}
+        </button>
         {!atRoot && (
-          <button className="btn-secondary py-1" onClick={() => browse(data.parent)}>⬆ Up</button>
+          <button className="btn-secondary btn-sm" onClick={() => browse(data.parent)}>
+            <Icon name="arrow-up" size={13} /> Up
+          </button>
         )}
-        {rel && <span className="font-mono text-slate-400 truncate">/{rel}</span>}
+        {rel && <span className="truncate font-mono text-xs text-ink-muted">/{rel}</span>}
         <div className="ml-auto flex gap-2">
-          <button className="btn-secondary py-1" onClick={mkdir}>📁＋ New folder</button>
-          <button className="btn-primary py-1" disabled={busy} onClick={() => inputRef.current?.click()}>
-            {busy ? 'Uploading…' : '⬆ Upload'}
+          <button className="btn-secondary btn-sm" onClick={mkdir}>
+            <Icon name="folder-plus" size={13} /> New folder
+          </button>
+          <button className="btn-primary btn-sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+            <Icon name="upload" size={13} /> {busy ? 'Uploading…' : 'Upload'}
           </button>
         </div>
         <input
@@ -164,7 +180,11 @@ export default function FolderBrowser({ rootPath, accept, viewer = true, editabl
         />
       </div>
 
-      {err && <p className="text-red-400 text-sm mb-2">{err}</p>}
+      {err && (
+        <p className="mb-2 flex items-center gap-1.5 text-sm text-red-400">
+          <Icon name="alert" size={14} /> {err}
+        </p>
+      )}
 
       {transfer && <ProgressBar dir={transfer.dir} name={transfer.name} pct={transfer.pct} />}
 
@@ -173,75 +193,93 @@ export default function FolderBrowser({ rootPath, accept, viewer = true, editabl
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        className={`rounded-lg border-2 border-dashed transition-colors ${
-          dragOver ? 'border-sky-500 bg-sky-500/10' : 'border-transparent'
+        className={`rounded-card border border-dashed transition duration-150 ${
+          dragOver ? 'border-mint-400/70 bg-mint-500/[0.07]' : 'border-transparent'
         }`}
       >
         {dragOver && (
-          <p className="text-center text-sky-400 py-6 text-sm">Drop files to upload to /{rel || rootName}</p>
+          <p className="flex items-center justify-center gap-2 py-8 text-sm text-mint-300">
+            <Icon name="upload" size={16} />
+            Drop files to upload to /{rel || rootName}
+          </p>
         )}
         {!dragOver && (
           data.entries.length === 0 ? (
-            <p className="text-center text-slate-600 py-8">
-              {emptyHint}<br />
-              <span className="text-xs text-slate-500">Drag files here or use the Upload button</span>
-            </p>
+            <div className="empty">
+              <Icon name="folder" size={26} />
+              <p>{emptyHint}</p>
+              <p className="text-xs text-ink-faint">Drag files here or use the Upload button</p>
+            </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                  <th className="py-2">Name</th>
-                  <th>Size</th>
-                  <th>Last modified</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-panel-border">
-                {data.entries.map((entry) => (
-                  <tr key={entry.path}>
-                    <td className="py-2 font-mono">
-                      {entry.is_dir ? (
-                        <button className="hover:text-sky-400" onClick={() => browse(entry.path)}>
-                          {iconFor(entry)} {entry.name}
-                        </button>
-                      ) : viewer && isSpreadsheet(entry.name) ? (
-                        <button className="hover:text-sky-400" onClick={() => setViewing(entry)}>
-                          {iconFor(entry)} {entry.name}
-                        </button>
-                      ) : editable && isEditable(entry.name) ? (
-                        <button className="hover:text-sky-400" onClick={() => setEditing(entry.path)}>
-                          {iconFor(entry)} {entry.name}
-                        </button>
-                      ) : (
-                        <span>{iconFor(entry)} {entry.name}</span>
-                      )}
-                    </td>
-                    <td>{entry.is_dir ? '—' : formatSize(entry.size)}</td>
-                    <td className="text-slate-400">{formatTime(entry.modified)}</td>
-                    <td className="text-right space-x-2">
-                      {viewer && !entry.is_dir && isSpreadsheet(entry.name) && (
-                        <button onClick={() => setViewing(entry)} className="text-emerald-400 hover:underline">
-                          Open
-                        </button>
-                      )}
-                      {editable && !entry.is_dir && !isSpreadsheet(entry.name) && isEditable(entry.name) && (
-                        <button onClick={() => setEditing(entry.path)} className="text-emerald-400 hover:underline">
-                          Edit
-                        </button>
-                      )}
-                      {!entry.is_dir && (
-                        <button onClick={() => download(entry)} className="text-sky-400 hover:underline">
-                          Download
-                        </button>
-                      )}
-                      <button onClick={() => remove(entry)} className="text-red-400 hover:underline">
-                        Delete
-                      </button>
-                    </td>
+            <div className="table-panel">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Last modified</th>
+                    <th className="text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.entries.map((entry) => {
+                    const { icon, tint } = tileFor(entry)
+                    const onOpen = activate(entry)
+                    return (
+                      <tr key={entry.path}>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <span className={`icon-tile ${tint}`}><Icon name={icon} size={16} /></span>
+                            <div className="min-w-0">
+                              {onOpen ? (
+                                <button
+                                  onClick={onOpen}
+                                  className="block max-w-full truncate font-mono text-[13px] text-ink-primary
+                                             transition-colors hover:text-mint-300"
+                                >
+                                  {entry.name}
+                                </button>
+                              ) : (
+                                <span className="block max-w-full truncate font-mono text-[13px] text-ink-secondary">
+                                  {entry.name}
+                                </span>
+                              )}
+                              <span className="text-[11px] text-ink-faint">
+                                {entry.is_dir ? 'folder' : (entry.name.split('.').pop() || 'file')}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-ink-muted">{entry.is_dir ? '—' : formatSize(entry.size)}</td>
+                        <td className="whitespace-nowrap text-ink-muted">{formatTime(entry.modified)}</td>
+                        <td className="col-actions">
+                          <div className="inline-flex items-center gap-1">
+                            {viewer && !entry.is_dir && isSpreadsheet(entry.name) && (
+                              <button className="btn-icon" onClick={() => setViewing(entry)} title="Open">
+                                <Icon name="table" size={15} />
+                              </button>
+                            )}
+                            {editable && !entry.is_dir && !isSpreadsheet(entry.name) && isEditable(entry.name) && (
+                              <button className="btn-icon" onClick={() => setEditing(entry.path)} title="Edit">
+                                <Icon name="edit" size={15} />
+                              </button>
+                            )}
+                            {!entry.is_dir && (
+                              <button className="btn-icon" onClick={() => download(entry)} title="Download">
+                                <Icon name="download" size={15} />
+                              </button>
+                            )}
+                            <button className="btn-icon-danger" onClick={() => remove(entry)} title="Delete">
+                              <Icon name="trash" size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )
         )}
       </div>

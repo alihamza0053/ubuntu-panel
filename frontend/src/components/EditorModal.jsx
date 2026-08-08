@@ -1,6 +1,8 @@
 import Editor from '@monaco-editor/react'
 import { useEffect, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import { MONACO_THEME, defineMonacoTheme } from '../monacoTheme'
+import Icon from './Icon'
 
 // Map extension → Monaco language id
 const LANGUAGES = {
@@ -67,30 +69,40 @@ export default function EditorModal({ path, onClose }) {
   if (!path) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex flex-col p-4">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="font-mono text-sm text-slate-300 truncate">{path}</span>
-        {error && <span className="text-xs text-red-400">{error}</span>}
-        <div className="ml-auto flex gap-2">
-          <button className="btn-primary" onClick={save} disabled={saving || loading}>
-            {saving ? 'Saving…' : '💾 Save (Ctrl+S)'}
+    <div className="fixed inset-0 z-50 flex flex-col bg-panel-ink/85 p-4 backdrop-blur-sm">
+      <div className="mb-3 flex animate-fade-up items-center gap-3 rounded-card border border-panel-border/70
+                      bg-panel-card/85 px-4 py-2.5 shadow-card">
+        <Icon name="file-text" size={16} className="text-mint-400" />
+        <span className="truncate font-mono text-[13px] text-ink-secondary">{path}</span>
+        {error && (
+          <span className="badge badge-red shrink-0">
+            <Icon name="alert" size={12} /> {error}
+          </span>
+        )}
+        <div className="ml-auto flex shrink-0 gap-2">
+          <button className="btn-primary btn-sm" onClick={save} disabled={saving || loading}>
+            <Icon name="save" size={14} />
+            {saving ? 'Saving…' : 'Save'}
+            <span className="kbd ml-1 bg-black/15 text-onmint/70">Ctrl S</span>
           </button>
-          <button className="btn-secondary" onClick={() => onClose(false)}>
-            Close (Esc)
+          <button className="btn-secondary btn-sm" onClick={() => onClose(false)}>
+            Close <span className="kbd ml-1">Esc</span>
           </button>
         </div>
       </div>
-      <div className="flex-1 border border-panel-border rounded-lg overflow-hidden">
+
+      <div className="flex-1 overflow-hidden rounded-card border border-panel-border/70 shadow-card">
         {loading ? (
-          <div className="h-full flex items-center justify-center text-slate-500">Loading…</div>
+          <div className="flex h-full items-center justify-center text-sm text-ink-faint">Loading…</div>
         ) : (
           <Editor
             height="100%"
-            theme="vs-dark"
+            theme={MONACO_THEME}
+            beforeMount={defineMonacoTheme}
             language={languageFor(path)}
             value={content}
             onChange={(v) => setContent(v ?? '')}
-            options={{ minimap: { enabled: false }, fontSize: 13 }}
+            options={{ minimap: { enabled: false }, fontSize: 13, padding: { top: 14 } }}
           />
         )}
       </div>

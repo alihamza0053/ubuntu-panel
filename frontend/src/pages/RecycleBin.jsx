@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 
 function formatSize(bytes) {
   if (bytes == null) return '—'
@@ -67,40 +69,45 @@ export default function RecycleBin() {
   }
 
   return (
-    <div className="max-w-5xl">
-      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold">🗑️ Recycle Bin</h2>
-          <p className="text-sm text-slate-500">
-            Files deleted from Projects &amp; Websites in the last {retention} hours.
-            Items are automatically removed {retention}h after deletion.
+    <div className="max-w-6xl">
+      <PageHeader
+        title="Recycle Bin"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Files', to: '/files' }, { label: 'Recycle Bin' }]}
+        lead={`Files deleted from Projects & Websites in the last ${retention} hours. Items are removed automatically ${retention}h after deletion.`}
+        actions={
+          <>
+            <button className="btn-secondary" onClick={load}>
+              <Icon name="refresh" size={14} /> Refresh
+            </button>
+            <button className="btn-danger" disabled={!items.length} onClick={empty}>
+              <Icon name="trash" size={14} /> Empty bin
+            </button>
+          </>
+        }
+      />
+
+      {err && (
+        <p className="mb-4 flex items-center gap-1.5 text-sm text-red-400">
+          <Icon name="alert" size={14} /> {err}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-ink-faint">Loading…</p>
+      ) : items.length === 0 ? (
+        <div className="empty">
+          <Icon name="trash" size={26} />
+          <p>The recycle bin is empty.</p>
+          <p className="text-xs text-ink-faint">
+            Deleted project &amp; website files show up here for {retention} hours.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn-secondary" onClick={load}>↻ Refresh</button>
-          <button className="btn-secondary text-red-300" disabled={!items.length} onClick={empty}>
-            Empty bin
-          </button>
-        </div>
-      </div>
-
-      {err && <p className="text-red-400 text-sm mb-3">{err}</p>}
-
-      <div className="card">
-        {loading ? (
-          <p className="text-center text-slate-500 py-8">Loading…</p>
-        ) : items.length === 0 ? (
-          <p className="text-center text-slate-600 py-10">
-            The recycle bin is empty.<br />
-            <span className="text-xs text-slate-500">
-              Deleted project &amp; website files show up here for {retention} hours.
-            </span>
-          </p>
-        ) : (
-          <table className="w-full text-sm">
+      ) : (
+        <div className="table-panel">
+          <table className="tbl">
             <thead>
-              <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                <th className="py-2">Name</th>
+              <tr>
+                <th>Name</th>
                 <th>Original location</th>
                 <th>Size</th>
                 <th>Deleted</th>
@@ -108,30 +115,37 @@ export default function RecycleBin() {
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-panel-border">
+            <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
-                  <td className="py-2 font-mono">
-                    {item.is_dir ? '📁' : '📄'} {item.name}
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <span className={`icon-tile ${item.is_dir ? 'tile-mint' : ''}`}>
+                        <Icon name={item.is_dir ? 'folder' : 'file'} size={16} />
+                      </span>
+                      <span className="truncate font-mono text-[13px] text-ink-primary">{item.name}</span>
+                    </div>
                   </td>
-                  <td className="text-slate-400 font-mono text-xs">{item.origin}</td>
-                  <td>{item.is_dir ? '—' : formatSize(item.size)}</td>
-                  <td className="text-slate-400">{formatTime(item.deleted_at)}</td>
-                  <td className="text-amber-400 text-xs">{timeLeft(item.expires_at)}</td>
-                  <td className="text-right space-x-2">
-                    <button onClick={() => restore(item)} className="text-emerald-400 hover:underline">
-                      Restore
-                    </button>
-                    <button onClick={() => remove(item)} className="text-red-400 hover:underline">
-                      Delete
-                    </button>
+                  <td className="font-mono text-xs text-ink-muted">{item.origin}</td>
+                  <td className="text-ink-muted">{item.is_dir ? '—' : formatSize(item.size)}</td>
+                  <td className="whitespace-nowrap text-ink-muted">{formatTime(item.deleted_at)}</td>
+                  <td className="whitespace-nowrap text-xs text-amber-300">{timeLeft(item.expires_at)}</td>
+                  <td className="col-actions">
+                    <div className="inline-flex items-center gap-1">
+                      <button onClick={() => restore(item)} className="btn-icon" title="Restore">
+                        <Icon name="refresh" size={15} />
+                      </button>
+                      <button onClick={() => remove(item)} className="btn-icon-danger" title="Delete permanently">
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

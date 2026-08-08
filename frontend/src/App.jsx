@@ -25,7 +25,15 @@ import Websites from './pages/Websites'
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
   if (loading) {
-    return <div className="h-screen flex items-center justify-center text-slate-400">Loading…</div>
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-3">
+        <span className="flex h-11 w-11 animate-halo items-center justify-center rounded-tile bg-mint
+                         text-base font-black text-onmint">
+          S
+        </span>
+        <span className="text-sm text-ink-muted">Loading…</span>
+      </div>
+    )
   }
   return user ? children : <Navigate to="/login" replace />
 }

@@ -1,7 +1,9 @@
 import Editor from '@monaco-editor/react'
 import { useEffect, useState } from 'react'
 import api, { errorMessage } from '../../api/client'
+import Icon from '../../components/Icon'
 import LiveLog from '../../components/LiveLog'
+import { MONACO_THEME, defineMonacoTheme } from '../../monacoTheme'
 
 // Map file extension → Monaco language id
 const LANGUAGES = {
@@ -61,7 +63,7 @@ export default function EditorTab({ project, files, initialFile }) {
     try {
       await api.post('/files/write', { path: current.path, content })
       setDirty(false)
-      setMessage(`Saved ${current.filename} ✓`)
+      setMessage(`Saved ${current.filename}`)
       setTimeout(() => setMessage(''), 3000)
     } catch (err) {
       alert(errorMessage(err))
@@ -105,72 +107,80 @@ export default function EditorTab({ project, files, initialFile }) {
   const canRun = isPython && ['code', 'allscripts'].includes(current?.folder)
 
   return (
-    <div className="flex gap-4" style={{ minHeight: '60vh' }}>
+    <div className="flex flex-col gap-4 lg:flex-row" style={{ minHeight: '60vh' }}>
       {/* File tree */}
-      <aside className="w-56 shrink-0 card overflow-y-auto">
-        <h4 className="text-xs uppercase tracking-wide text-slate-500 mb-2">Project files</h4>
+      <aside className="card w-full shrink-0 overflow-y-auto lg:w-56">
+        <h4 className="label">Project files</h4>
         {files ? (
           Object.entries(files.folders).map(([folder, list]) => (
-            <div key={folder} className="mb-3">
-              <p className="font-mono text-xs text-slate-500">{folder}/</p>
-              <ul>
-                {list.map((file) => (
-                  <li key={file.name}>
-                    <button
-                      onClick={() => openFile(folder, file.name)}
-                      className={`w-full text-left px-2 py-1 rounded text-sm truncate ${
-                        current?.folder === folder && current?.filename === file.name
-                          ? 'bg-sky-600/20 text-sky-300'
-                          : 'text-slate-300 hover:bg-slate-700/50'
-                      }`}
-                    >
-                      {file.name}
-                    </button>
-                  </li>
-                ))}
-                {list.length === 0 && <li className="px-2 text-xs text-slate-700">empty</li>}
+            <div key={folder} className="mb-4">
+              <p className="mb-1 font-mono text-[11px] text-ink-faint">{folder}/</p>
+              <ul className="space-y-0.5">
+                {list.map((file) => {
+                  const active = current?.folder === folder && current?.filename === file.name
+                  return (
+                    <li key={file.name}>
+                      <button
+                        onClick={() => openFile(folder, file.name)}
+                        className={`list-item font-mono text-[13px] ${active ? 'list-item-active' : ''}`}
+                      >
+                        {file.name}
+                      </button>
+                    </li>
+                  )
+                })}
+                {list.length === 0 && <li className="px-2.5 text-[11px] text-ink-faint">empty</li>}
               </ul>
             </div>
           ))
         ) : (
-          <p className="text-slate-500 text-sm">Loading…</p>
+          <p className="text-sm text-ink-faint">Loading…</p>
         )}
       </aside>
 
       {/* Editor area */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="font-mono text-sm text-slate-400 truncate">
-            {current ? `${current.folder}/${current.filename}${dirty ? ' •' : ''}` : 'No file open'}
+      <div className="min-w-0 flex-1">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="truncate font-mono text-[13px] text-ink-secondary">
+            {current ? `${current.folder}/${current.filename}` : 'No file open'}
           </span>
-          {message && <span className="text-xs text-green-400">{message}</span>}
+          {dirty && <span className="badge badge-amber">unsaved</span>}
+          {message && (
+            <span className="badge badge-mint"><Icon name="check" size={12} /> {message}</span>
+          )}
           <div className="ml-auto flex gap-2">
             {canRun && (
-              <button className="btn-secondary" onClick={runCurrent}>▶ Run this file</button>
+              <button className="btn-secondary btn-sm" onClick={runCurrent}>
+                <Icon name="play" size={13} /> Run this file
+              </button>
             )}
-            <button className="btn-primary" onClick={save} disabled={!current || !dirty || saving}>
-              {saving ? 'Saving…' : '💾 Save (Ctrl+S)'}
+            <button className="btn-primary btn-sm" onClick={save} disabled={!current || !dirty || saving}>
+              <Icon name="save" size={13} />
+              {saving ? 'Saving…' : 'Save'}
+              <span className="kbd ml-1 bg-black/15 text-onmint/70">Ctrl S</span>
             </button>
           </div>
         </div>
 
         {current ? (
-          <div className="border border-panel-border rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-card border border-panel-border/70 shadow-card">
             <Editor
               height="55vh"
-              theme="vs-dark"
+              theme={MONACO_THEME}
+              beforeMount={defineMonacoTheme}
               language={languageFor(current.filename)}
               value={content}
               onChange={(value) => {
                 setContent(value ?? '')
                 setDirty(true)
               }}
-              options={{ minimap: { enabled: false }, fontSize: 13 }}
+              options={{ minimap: { enabled: false }, fontSize: 13, padding: { top: 14 } }}
             />
           </div>
         ) : (
-          <div className="card h-[55vh] flex items-center justify-center text-slate-600">
-            Select a file from the tree to start editing
+          <div className="empty h-[55vh]">
+            <Icon name="file-text" size={26} />
+            <p>Select a file from the tree to start editing.</p>
           </div>
         )}
 

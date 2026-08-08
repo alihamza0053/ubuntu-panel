@@ -2,35 +2,430 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base dark theme */
-body {
-  @apply bg-panel-bg text-slate-200 antialiased;
+/* ═══════════════════════════════════════════════════════════════════════════
+   ServerHub — "mint on teal-black" control-panel design language.
+   Dark only. Mint (#3FE39B → #15B96C) is the single accent; aqua (#22E5CE)
+   appears in gradients and ambient light only. Everything else is surface
+   and muted text.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-panel-bg text-ink-body antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Ambient glow: fixed behind everything, never scrolls, never interactive. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(60rem 34rem at 108% -8%, rgba(34, 229, 206, 0.2), transparent 62%),
+      radial-gradient(46rem 30rem at 100% 18%, rgba(34, 208, 126, 0.14), transparent 60%),
+      radial-gradient(34rem 26rem at -6% 96%, rgba(34, 229, 206, 0.13), transparent 62%);
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-ink-primary;
+  }
+
+  /* Thin, surface-coloured scrollbars everywhere. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #17333d transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(23, 51, 61, 0.9);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(34, 208, 126, 0.45);
+    background-clip: content-box;
+  }
+
+  ::selection {
+    background: rgba(63, 227, 155, 0.25);
+    color: #e7f5f1;
+  }
+
+  code, pre, kbd {
+    font-variant-ligatures: none;
+  }
 }
 
-/* Reusable building blocks */
 @layer components {
+  /* ───────────────────────────── Surfaces ───────────────────────────── */
+
   .card {
-    @apply bg-panel-card border border-panel-border rounded-xl p-4;
+    @apply rounded-card border border-panel-border/70 bg-panel-card/80 p-5 shadow-card
+           backdrop-blur-sm;
   }
+
+  /* Grid tiles that respond to the pointer: lift + mint rim + glow. */
+  .card-hover {
+    @apply transition duration-200 hover:-translate-y-0.5 hover:border-mint-400/45 hover:shadow-glow;
+  }
+
+  .surface {
+    @apply rounded-lg border border-panel-border/70 bg-panel-bg/60 p-3;
+  }
+
+  .hairline {
+    @apply border-panel-border/70;
+  }
+
+  /* ───────────────────────────── Typography ─────────────────────────── */
+
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-ink-primary;
+  }
+
+  /* Small semibold heading preceded by a 14×2px vertical mint tick. */
+  .sec-title {
+    @apply flex items-center gap-2.5 text-sm font-semibold text-ink-primary;
+  }
+  .sec-title::before {
+    content: '';
+    @apply h-3.5 w-0.5 shrink-0 rounded-full bg-mint-tick;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[11px] font-medium uppercase tracking-[0.08em] text-ink-dim;
+  }
+
+  .hint {
+    @apply text-xs leading-relaxed text-ink-muted;
+  }
+
+  .link {
+    @apply text-mint-400 transition-colors hover:text-mint-300;
+  }
+
+  .mono {
+    @apply font-mono text-[13px];
+  }
+
+  /* Breadcrumb: mint links joined by small muted chevrons, last crumb muted. */
+  .crumbs {
+    @apply flex flex-wrap items-center gap-1.5 text-xs;
+  }
+  .crumbs > .crumb {
+    @apply text-mint-400 transition-colors hover:text-mint-300;
+  }
+  .crumbs > .crumb-sep {
+    @apply text-ink-faint;
+  }
+  .crumbs > .crumb-current {
+    @apply text-ink-muted;
+  }
+
+  .kbd {
+    @apply rounded border border-panel-border/80 bg-panel-raised/70 px-1.5 py-0.5
+           font-mono text-[10px] leading-none text-ink-dim;
+  }
+
+  /* ───────────────────────────── Buttons ────────────────────────────── */
+
   .btn {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
-           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex select-none items-center justify-center gap-1.5 rounded-lg px-3.5 py-2
+           text-sm font-medium leading-none transition duration-150 active:scale-[0.98]
+           disabled:pointer-events-none disabled:opacity-45;
   }
+
   .btn-primary {
-    @apply btn bg-sky-600 hover:bg-sky-500 text-white;
+    @apply btn bg-mint font-semibold text-onmint shadow-btn hover:brightness-110;
   }
+
   .btn-secondary {
-    @apply btn bg-slate-700 hover:bg-slate-600 text-slate-100;
+    @apply btn border border-panel-border/80 bg-panel-raised/70 text-ink-muted
+           hover:border-mint-400/50 hover:text-mint-300;
   }
+
+  .btn-ghost {
+    @apply btn border border-transparent text-ink-muted
+           hover:border-panel-border/80 hover:bg-panel-raised/70 hover:text-ink-secondary;
+  }
+
   .btn-danger {
-    @apply btn bg-red-700 hover:bg-red-600 text-white;
+    @apply btn border border-red-500/40 bg-red-500/12 text-red-400
+           hover:border-red-500/60 hover:bg-red-500/20;
   }
+
+  /* 32px square icon button. */
+  .btn-icon {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
+           border border-transparent text-ink-muted transition duration-150 active:scale-[0.98]
+           hover:border-panel-border/80 hover:bg-panel-raised/70 hover:text-mint-300
+           disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .btn-icon-danger {
+    @apply btn-icon hover:border-red-500/40 hover:bg-red-500/12 hover:text-red-400;
+  }
+
+  /* Compact variant for dense toolbars / table rows. */
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+
+  /* Plain text action used inside table rows and footers. */
+  .act {
+    @apply text-xs text-ink-muted transition-colors hover:text-mint-300;
+  }
+  .act-danger {
+    @apply text-xs text-red-400/90 transition-colors hover:text-red-300;
+  }
+
+  /* ───────────────────────────── Form controls ──────────────────────── */
+
   .input {
-    @apply w-full px-3 py-2 rounded-lg bg-slate-900 border border-panel-border
-           text-slate-100 placeholder-slate-500
-           focus:outline-none focus:ring-2 focus:ring-sky-500;
+    @apply w-full rounded-lg border border-panel-border/80 bg-panel-bg px-3.5 py-2.5
+           text-sm text-ink-primary placeholder-ink-faint transition duration-150
+           focus:border-mint-400/70 focus:shadow-ring focus:outline-none
+           disabled:opacity-45;
   }
+
+  textarea.input {
+    @apply leading-relaxed;
+  }
+
+  /* Selects reuse the .input shell and add a custom muted chevron. */
+  select.input {
+    @apply cursor-pointer appearance-none bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237B989F' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-size: 16px 16px;
+  }
+
+  select.input option {
+    @apply bg-panel-card text-ink-primary;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply h-4 w-4 shrink-0 cursor-pointer rounded border-panel-border bg-panel-bg;
+    accent-color: #22d07e;
+  }
+
+  .field {
+    @apply space-y-0; /* label + control grouping */
+  }
+
+  /* 36×20 toggle pill. */
+  .toggle {
+    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full
+           border border-panel-border/80 bg-panel-raised transition duration-200;
+  }
+  .toggle::after {
+    content: '';
+    @apply absolute left-0.5 h-3.5 w-3.5 rounded-full bg-ink-faint transition-all duration-200;
+  }
+  .toggle-on {
+    @apply border-transparent bg-mint;
+  }
+  .toggle-on::after {
+    @apply left-[1.125rem] bg-white;
+  }
+
+  /* ───────────────────────────── Tabs ───────────────────────────────── */
+
+  .tabs {
+    @apply flex items-center gap-1 overflow-x-auto border-b border-panel-border/70;
+  }
+
+  .tab {
+    @apply -mb-px inline-flex items-center gap-2 whitespace-nowrap border-b-2 border-transparent
+           px-3.5 py-2.5 text-sm text-ink-muted transition duration-150 hover:text-ink-secondary;
+  }
+
+  .tab-active {
+    @apply border-mint-400 text-mint-300;
+  }
+
+  .tab-count {
+    @apply inline-flex min-w-[1.25rem] items-center justify-center rounded-full
+           bg-panel-raised px-1.5 py-0.5 text-[10px] font-bold leading-none text-ink-dim;
+  }
+
+  .tab-active .tab-count {
+    @apply bg-mint-500/18 text-mint-300;
+  }
+
+  /* ───────────────────────────── Tables ─────────────────────────────── */
+
+  .table-panel {
+    @apply overflow-x-auto rounded-card border border-panel-border/70 bg-panel-card/60;
+  }
+
+  .tbl {
+    @apply w-full text-sm;
+  }
+  .tbl thead tr {
+    @apply border-b border-panel-border/70;
+  }
+  .tbl th {
+    @apply px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim;
+  }
+  .tbl tbody tr {
+    @apply border-b border-panel-border/40 transition-colors last:border-0
+           hover:bg-mint-400/[0.04];
+  }
+  .tbl td {
+    @apply px-4 py-2.5 align-middle text-ink-body;
+  }
+  .tbl .col-actions {
+    @apply whitespace-nowrap text-right;
+  }
+
+  /* 36px rounded icon tile used in a table's first column. */
+  .icon-tile {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-tile
+           border border-panel-border/60 bg-panel-raised/60 text-ink-muted;
+  }
+  .tile-mint   { @apply border-mint-400/25 bg-mint-500/12 text-mint-300; }
+  .tile-aqua   { @apply border-aqua/25 bg-aqua/10 text-aqua; }
+  .tile-amber  { @apply border-amber-400/25 bg-amber-400/10 text-amber-300; }
+  .tile-violet { @apply border-violet-400/25 bg-violet-400/10 text-violet-300; }
+  .tile-red    { @apply border-red-400/25 bg-red-400/10 text-red-300; }
+
+  /* ───────────────────────────── Badges ─────────────────────────────── */
+
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5
+           text-[11px] font-semibold leading-5;
+  }
+  .badge-mint    { @apply border-mint-400/30 bg-mint-500/12 text-mint-300; }
+  .badge-aqua    { @apply border-aqua/30 bg-aqua/10 text-aqua; }
+  .badge-amber   { @apply border-amber-400/30 bg-amber-400/10 text-amber-300; }
+  .badge-red     { @apply border-red-400/30 bg-red-400/10 text-red-300; }
+  .badge-violet  { @apply border-violet-400/30 bg-violet-400/10 text-violet-300; }
+  .badge-neutral { @apply border-panel-border/80 bg-panel-raised/70 text-ink-muted; }
+
+  /* Status dot leading a badge; the "live" variant pulses a mint halo. */
+  .dot {
+    @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current;
+  }
+  .dot-pulse {
+    @apply dot animate-halo;
+  }
+
+  /* ───────────────────────────── Modals ─────────────────────────────── */
+
+  .modal-scrim {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-panel-ink/80 p-4 backdrop-blur-sm;
+  }
+
+  .modal-card {
+    @apply w-full animate-fade-up overflow-hidden rounded-card border border-panel-border/70
+           bg-panel-card shadow-card;
+  }
+
+  .modal-head {
+    @apply flex items-start justify-between gap-4 border-b border-panel-border/70 px-5 py-4;
+  }
+
+  .modal-body {
+    @apply space-y-4 px-5 py-5;
+  }
+
+  .modal-foot {
+    @apply flex items-center justify-end gap-2 border-t border-panel-border/70 px-5 py-4;
+  }
+
+  /* ───────────────────────────── Empty state ────────────────────────── */
+
+  .empty {
+    @apply flex flex-col items-center justify-center gap-2 rounded-card border border-dashed
+           border-panel-border px-6 py-12 text-center text-sm text-ink-muted;
+  }
+  .empty svg {
+    @apply text-ink-faint;
+  }
+
+  /* ───────────────────────────── Log / console ──────────────────────── */
+
+  .log-pane {
+    @apply overflow-hidden rounded-card border border-panel-border/70;
+  }
+  .log-head {
+    @apply flex items-center justify-between gap-3 border-b border-panel-border/70
+           bg-panel-card/70 px-3.5 py-2 text-[11px];
+  }
+  .log-body {
+    @apply overflow-y-auto whitespace-pre-wrap break-words bg-panel-ink p-3.5
+           font-mono text-xs leading-relaxed text-ink-body;
+  }
+  .log-ok   { @apply text-mint-300; }
+  .log-err  { @apply text-red-400; }
+  .log-sys  { @apply text-aqua; }
+
+  /* ───────────────────────────── Shell chrome ───────────────────────── */
+
+  .rail-btn {
+    @apply relative flex h-11 w-11 items-center justify-center rounded-tile text-ink-dim
+           transition duration-150 hover:border hover:border-panel-border/80
+           hover:bg-panel-raised/80 hover:text-ink-secondary;
+  }
+  .rail-btn-active {
+    @apply bg-mint text-onmint shadow-rail hover:bg-mint hover:text-onmint;
+  }
+  .rail-tip {
+    @apply pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap
+           rounded-lg border border-panel-border/80 bg-panel-card px-2.5 py-1.5
+           text-xs text-ink-secondary shadow-card group-hover:block;
+  }
+
+  .topbar-link {
+    @apply rounded-md px-2.5 py-1.5 text-sm text-ink-muted transition-colors hover:text-ink-secondary;
+  }
+  .topbar-link-active {
+    @apply text-mint-300;
+  }
+
+  .search-pill {
+    @apply flex h-9 items-center gap-2 rounded-full border border-panel-border/70
+           bg-panel-card/70 pl-3.5 pr-2 text-sm text-ink-muted transition duration-150
+           hover:border-mint-400/35;
+  }
+
+  .avatar {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mint
+           text-[11px] font-bold text-onmint;
+  }
+
+  /* Sidebar-style nav item used by Logs / Databases / Editor file lists. */
+  .list-item {
+    @apply block w-full truncate rounded-lg px-2.5 py-1.5 text-left text-sm text-ink-body
+           transition duration-150 hover:bg-panel-raised/70 hover:text-ink-primary;
+  }
+  .list-item-active {
+    @apply bg-mint-500/12 text-mint-300 hover:bg-mint-500/12 hover:text-mint-300;
+  }
+}
+
+@layer utilities {
+  .panel-enter {
+    @apply animate-fade-up;
   }
 }

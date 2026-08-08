@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../../api/client'
+import Icon from '../../components/Icon'
 import LiveLog from '../../components/LiveLog'
 import StatusBadge from '../../components/StatusBadge'
 
@@ -65,8 +66,9 @@ export default function ScriptsTab({ project, onChanged }) {
 
   if (scripts.length === 0) {
     return (
-      <div className="card text-center py-10 text-slate-500">
-        No scripts yet — upload .py files to code/ or allscripts/ on the Files tab.
+      <div className="empty">
+        <Icon name="code" size={26} />
+        <p>No scripts yet — upload .py files to code/ or allscripts/ on the Files tab.</p>
       </div>
     )
   }
@@ -75,36 +77,37 @@ export default function ScriptsTab({ project, onChanged }) {
     <div className="space-y-3">
       {scripts.map((script) => {
         const panel = panels[script.id]
+        const running = script.last_status === 'RUNNING'
         return (
           <div key={script.id} className="card">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-mono text-sm">
-                <span className="text-slate-500">{script.folder}/</span>
-                {script.filename}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className={`icon-tile ${running ? 'tile-mint' : ''}`}>
+                <Icon name="file-text" size={16} />
               </span>
+              <div className="min-w-0">
+                <p className="truncate font-mono text-[13px] text-ink-primary">
+                  <span className="text-ink-faint">{script.folder}/</span>{script.filename}
+                </p>
+                <p className="text-[11px] text-ink-faint">last run: {formatTime(script.last_run)}</p>
+              </div>
               {script.last_status && <StatusBadge status={script.last_status} />}
-              <span className="text-xs text-slate-500">last run: {formatTime(script.last_run)}</span>
 
               <div className="ml-auto flex gap-2">
-                {script.last_status === 'RUNNING' ? (
-                  <button className="btn-danger" onClick={() => stopScript(script)}>
-                    ⏹ Stop
+                {running ? (
+                  <button className="btn-danger btn-sm" onClick={() => stopScript(script)}>
+                    <Icon name="stop" size={13} /> Stop
                   </button>
                 ) : (
-                  <button className="btn-primary" onClick={() => runLive(script)}>
-                    ▶ Run Now
+                  <button className="btn-primary btn-sm" onClick={() => runLive(script)}>
+                    <Icon name="play" size={13} /> Run Now
                   </button>
                 )}
-                <button className="btn-secondary" onClick={() => viewLog(script)}>
-                  📜 View Log
+                <button className="btn-secondary btn-sm" onClick={() => viewLog(script)}>
+                  <Icon name="scroll" size={13} /> View Log
                 </button>
                 {panel && (
-                  <button
-                    className="btn-secondary"
-                    onClick={() => closePanel(script.id)}
-                    title="Close panel"
-                  >
-                    ✕
+                  <button className="btn-icon" onClick={() => closePanel(script.id)} title="Close panel">
+                    <Icon name="x" size={15} />
                   </button>
                 )}
               </div>

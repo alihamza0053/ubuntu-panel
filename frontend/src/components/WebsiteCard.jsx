@@ -1,10 +1,19 @@
 import { Link, useNavigate } from 'react-router-dom'
+import Icon from './Icon'
 
-const TYPE_STYLES = {
-  react: 'bg-sky-500/15 text-sky-400',
-  php: 'bg-violet-500/15 text-violet-400',
-  html: 'bg-orange-500/15 text-orange-400',
-  python: 'bg-emerald-500/15 text-emerald-400',
+// Per-type tint for the badge and the icon tile. Mint stays reserved for
+// state, so site types borrow the neutral / aqua / amber / violet tints.
+const TYPE_BADGE = {
+  react: 'badge-aqua',
+  php: 'badge-violet',
+  html: 'badge-amber',
+  python: 'badge-mint',
+}
+const TYPE_TILE = {
+  react: 'tile-aqua',
+  php: 'tile-violet',
+  html: 'tile-amber',
+  python: 'tile-mint',
 }
 
 /** Home / Websites grid card for one website. */
@@ -13,64 +22,86 @@ export default function WebsiteCard({ site, onDelete, onToggleHidden }) {
   const liveUrl = site.domain ? `http://${site.domain}` : null
 
   return (
-    <div className="card hover:border-sky-700 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <Link to={`/websites/${site.id}`} className="text-lg font-semibold text-sky-300 hover:underline">
-          {site.name}
-        </Link>
-        <span className="flex items-center gap-1.5">
+    <div className="card card-hover">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className={`icon-tile ${TYPE_TILE[site.type] || ''}`}>
+            <Icon name="globe" size={18} />
+          </span>
+          <Link
+            to={`/websites/${site.id}`}
+            className="truncate text-base font-semibold text-ink-primary transition-colors hover:text-mint-300"
+          >
+            {site.name}
+          </Link>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5">
           {site.hidden && (
-            <span className="badge bg-slate-500/15 text-slate-400" title="Only admins can see this website">
-              🙈 hidden
+            <span className="badge badge-neutral" title="Only admins can see this website">
+              <Icon name="eye-off" size={12} /> hidden
             </span>
           )}
-          <span className={`badge ${TYPE_STYLES[site.type] || ''}`}>{site.type.toUpperCase()}</span>
+          <span className={`badge ${TYPE_BADGE[site.type] || 'badge-neutral'}`}>
+            {site.type.toUpperCase()}
+          </span>
         </span>
       </div>
 
-      <dl className="mt-3 space-y-1.5 text-sm">
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Domain</dt>
-          <dd>
+      <dl className="mt-4 space-y-2 text-sm">
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-ink-dim">Domain</dt>
+          <dd className="min-w-0 truncate text-right">
             {liveUrl ? (
-              <a href={liveUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
-                {site.domain} ↗
+              <a href={liveUrl} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1">
+                {site.domain}
+                <Icon name="external-link" size={12} />
               </a>
-            ) : <span className="text-slate-600">not assigned</span>}
+            ) : <span className="text-ink-faint">not assigned</span>}
           </dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Database</dt>
-          <dd className="text-slate-300">{site.db_name || '—'}</dd>
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-ink-dim">Database</dt>
+          <dd className="min-w-0 truncate text-right text-ink-body">{site.db_name || '—'}</dd>
         </div>
         {site.type === 'python' && (
-          <div className="flex justify-between">
-            <dt className="text-slate-500">Service</dt>
-            <dd className={site.status === 'RUNNING' ? 'text-green-400' : 'text-slate-400'}>
+          <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-ink-dim">Service</dt>
+            <dd className={site.status === 'RUNNING' ? 'text-mint-300' : 'text-ink-muted'}>
               {site.status || 'STOPPED'}
             </dd>
           </div>
         )}
       </dl>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button className="btn-secondary" onClick={() => navigate(`/websites/${site.id}?tab=files`)}>📁 Files</button>
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <button className="btn-secondary btn-sm" onClick={() => navigate(`/websites/${site.id}?tab=files`)}>
+          <Icon name="folder" size={13} /> Files
+        </button>
         {site.type === 'python' && (
-          <button className="btn-secondary" onClick={() => navigate(`/websites/${site.id}?tab=run`)}>▶ Run</button>
-        )}
-        <button className="btn-secondary" onClick={() => navigate(`/websites/${site.id}?tab=database`)}>🗄 Database</button>
-        {onToggleHidden && (
-          <button
-            className="btn-secondary"
-            onClick={() => onToggleHidden(site)}
-            title={site.hidden ? 'Hidden from non-admins — click to unhide' : 'Hide from non-admins'}
-          >
-            {site.hidden ? '🙈' : '👁'}
+          <button className="btn-secondary btn-sm" onClick={() => navigate(`/websites/${site.id}?tab=run`)}>
+            <Icon name="play" size={13} /> Run
           </button>
         )}
-        {onDelete && (
-          <button className="btn-secondary text-red-400" onClick={() => onDelete(site)}>🗑</button>
-        )}
+        <button className="btn-secondary btn-sm" onClick={() => navigate(`/websites/${site.id}?tab=database`)}>
+          <Icon name="database" size={13} /> Database
+        </button>
+
+        <span className="ml-auto flex items-center gap-1">
+          {onToggleHidden && (
+            <button
+              className="btn-icon"
+              onClick={() => onToggleHidden(site)}
+              title={site.hidden ? 'Hidden from non-admins — click to unhide' : 'Hide from non-admins'}
+            >
+              <Icon name={site.hidden ? 'eye-off' : 'eye'} size={15} />
+            </button>
+          )}
+          {onDelete && (
+            <button className="btn-icon-danger" onClick={() => onDelete(site)} title="Delete website">
+              <Icon name="trash" size={15} />
+            </button>
+          )}
+        </span>
       </div>
     </div>
   )

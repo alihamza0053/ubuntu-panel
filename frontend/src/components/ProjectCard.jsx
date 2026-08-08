@@ -1,10 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom'
 import api, { errorMessage } from '../api/client'
+import Icon from './Icon'
 import StatusBadge from './StatusBadge'
 
 function formatTime(iso) {
   if (!iso) return '—'
   return new Date(iso + 'Z').toLocaleString()
+}
+
+/** One label/value line inside a card's detail list. */
+function Row({ label, children }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="shrink-0 text-ink-dim">{label}</dt>
+      <dd className="min-w-0 truncate text-right text-ink-body">{children}</dd>
+    </div>
+  )
 }
 
 /**
@@ -28,16 +39,24 @@ export default function ProjectCard({ project, onChanged }) {
     : `http://${window.location.hostname}:${project.dashboard_port}`
 
   return (
-    <div className="card hover:border-sky-700 transition-colors">
+    <div className="card card-hover">
       {/* Header: name + status */}
-      <div className="flex items-start justify-between gap-2">
-        <Link to={`/projects/${project.id}`} className="text-lg font-semibold text-sky-300 hover:underline">
-          {project.name}
-        </Link>
-        <span className="flex items-center gap-1.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="icon-tile tile-mint">
+            <Icon name="code" size={18} />
+          </span>
+          <Link
+            to={`/projects/${project.id}`}
+            className="truncate text-base font-semibold text-ink-primary transition-colors hover:text-mint-300"
+          >
+            {project.name}
+          </Link>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5">
           {project.hidden && (
-            <span className="badge bg-slate-500/15 text-slate-400" title="Only admins can see this project">
-              🙈 hidden
+            <span className="badge badge-neutral" title="Only admins can see this project">
+              <Icon name="eye-off" size={12} /> hidden
             </span>
           )}
           <StatusBadge status={project.dashboard_status} />
@@ -45,49 +64,48 @@ export default function ProjectCard({ project, onChanged }) {
       </div>
 
       {/* Details */}
-      <dl className="mt-3 space-y-1.5 text-sm">
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Dashboard</dt>
-          <dd>
-            <a href={liveUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
-              {project.domain || `:${project.dashboard_port}`} ↗
-            </a>
-          </dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Last script run</dt>
-          <dd className="flex items-center gap-1.5">
+      <dl className="mt-4 space-y-2 text-sm">
+        <Row label="Dashboard">
+          <a href={liveUrl} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1">
+            {project.domain || `:${project.dashboard_port}`}
+            <Icon name="external-link" size={12} />
+          </a>
+        </Row>
+        <Row label="Last script run">
+          <span className="inline-flex items-center gap-1.5">
             {formatTime(project.last_script_run)}
             {project.last_script_status && (
-              <span className={project.last_script_status === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
-                {project.last_script_status === 'SUCCESS' ? '✓' : '✗'}
-              </span>
+              <Icon
+                name={project.last_script_status === 'SUCCESS' ? 'check' : 'x'}
+                size={13}
+                className={project.last_script_status === 'SUCCESS' ? 'text-mint-400' : 'text-red-400'}
+              />
             )}
-          </dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Next scheduled</dt>
-          <dd>{formatTime(project.next_scheduled_run)}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-500">Files</dt>
-          <dd className="text-slate-300">
-            {project.file_counts?.code ?? 0} scripts · {project.file_counts?.data ?? 0} data ·{' '}
-            {project.file_counts?.dashboard ?? 0} dashboard
-          </dd>
-        </div>
+          </span>
+        </Row>
+        <Row label="Next scheduled">{formatTime(project.next_scheduled_run)}</Row>
+        <Row label="Files">
+          {project.file_counts?.code ?? 0} scripts · {project.file_counts?.data ?? 0} data ·{' '}
+          {project.file_counts?.dashboard ?? 0} dashboard
+        </Row>
       </dl>
 
       {/* Quick actions */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button className="btn-secondary" onClick={() => action('start')}>▶ Start</button>
-        <button className="btn-secondary" onClick={() => action('stop')}>⏹ Stop</button>
-        <button className="btn-secondary" onClick={() => action('restart')}>🔄 Restart</button>
-        <button className="btn-secondary" onClick={() => navigate(`/projects/${project.id}?tab=scripts`)}>
-          ▶ Run Script
+      <div className="mt-5 flex flex-wrap gap-2">
+        <button className="btn-secondary btn-sm" onClick={() => action('start')}>
+          <Icon name="play" size={13} /> Start
         </button>
-        <button className="btn-secondary" onClick={() => navigate(`/projects/${project.id}?tab=files`)}>
-          📁 Files
+        <button className="btn-secondary btn-sm" onClick={() => action('stop')}>
+          <Icon name="stop" size={13} /> Stop
+        </button>
+        <button className="btn-secondary btn-sm" onClick={() => action('restart')}>
+          <Icon name="refresh" size={13} /> Restart
+        </button>
+        <button className="btn-secondary btn-sm" onClick={() => navigate(`/projects/${project.id}?tab=scripts`)}>
+          <Icon name="terminal" size={13} /> Scripts
+        </button>
+        <button className="btn-secondary btn-sm" onClick={() => navigate(`/projects/${project.id}?tab=files`)}>
+          <Icon name="folder" size={13} /> Files
         </button>
       </div>
     </div>

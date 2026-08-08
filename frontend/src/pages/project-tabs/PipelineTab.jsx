@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../../api/client'
+import Icon from '../../components/Icon'
 import LiveLog from '../../components/LiveLog'
 import StatusBadge from '../../components/StatusBadge'
 
@@ -123,34 +124,44 @@ export default function PipelineTab({ project }) {
   const scheduled = !!info?.cron_expression
   // Running if we're locally streaming, or the latest run is still RUNNING
   const running = !!runWs || lastRun?.status === 'RUNNING'
+  const msgOk = msg.includes('✓')
 
   return (
     <div className="space-y-4">
       {/* Run-all panel */}
       <div className="card">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h3 className="font-semibold">Project Pipeline</h3>
-          <span className="text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="sec-title">Project Pipeline</h3>
+          <span className="hint max-w-xl">
             Runs all {info?.scripts?.length ?? 0} code/ script(s) in order, retries any that fail
             at the end, then restarts the dashboard.
           </span>
           <div className="ml-auto flex gap-2">
             {running && (
-              <button className="btn-danger" onClick={stopNow}>⏹ Stop</button>
+              <button className="btn-danger btn-sm" onClick={stopNow}>
+                <Icon name="stop" size={13} /> Stop
+              </button>
             )}
-            <button className="btn-primary" onClick={runNow} disabled={running}>
-              {running ? 'Running…' : '▶ Run All Now'}
+            <button className="btn-primary btn-sm" onClick={runNow} disabled={running}>
+              <Icon name="play" size={13} />
+              {running ? 'Running…' : 'Run All Now'}
             </button>
           </div>
         </div>
 
         {/* Ordered script list */}
         {info?.scripts?.length > 0 && (
-          <ol className="mt-3 text-sm list-decimal list-inside text-slate-400 space-y-0.5">
-            {info.scripts.map((s) => <li key={s} className="font-mono">{s}</li>)}
+          <ol className="mt-4 space-y-1 text-sm">
+            {info.scripts.map((s, i) => (
+              <li key={s} className="flex items-center gap-3 rounded-lg px-1 py-1
+                                     transition-colors hover:bg-mint-400/[0.04]">
+                <span className="w-6 shrink-0 text-right font-mono text-xs text-ink-faint">{i + 1}</span>
+                <span className="truncate font-mono text-[13px] text-ink-body">{s}</span>
+              </li>
+            ))}
           </ol>
         )}
-        <p className="text-xs text-slate-600 mt-2">
+        <p className="hint mt-3">
           Scripts run in filename order — prefix with 01_, 02_, … to control the sequence.
         </p>
 
@@ -159,51 +170,60 @@ export default function PipelineTab({ project }) {
 
       {/* Last run results */}
       <div className="card">
-        <div className="flex items-center gap-2 mb-3">
-          <h3 className="font-semibold">Last Run</h3>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <h3 className="sec-title">Last Run</h3>
           {lastRun && <StatusBadge status={lastRun.status} />}
           {lastRun && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-ink-faint">
               {fmt(lastRun.started_at + 'Z')} → {lastRun.finished_at ? fmt(lastRun.finished_at + 'Z') : 'running…'}
             </span>
           )}
         </div>
+
         {!lastRun ? (
-          <p className="text-slate-600 text-sm">No runs yet.</p>
+          <div className="empty">
+            <Icon name="activity" size={26} />
+            <p>No runs yet.</p>
+          </div>
         ) : (
           <>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-                  <th className="py-1">#</th><th>Script</th><th>Result</th><th>Finished</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-panel-border">
-                {lastRun.results.map((r, i) => (
-                  <tr key={r.filename}>
-                    <td className="py-1.5 text-slate-500">{i + 1}</td>
-                    <td className="font-mono">{r.filename}</td>
-                    <td className="space-x-1">
-                      <span className={`badge ${r.status === 'SUCCESS'
-                        ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
-                        {r.status === 'SUCCESS' ? '✓ OK' : `✗ FAILED (exit ${r.exit_code})`}
-                      </span>
-                      {r.retried && (
-                        <span className="badge bg-sky-500/15 text-sky-300"
-                          title={`Re-run at the end (${r.attempts} attempts)`}>
-                          ↻ {r.status === 'SUCCESS' ? 'recovered on retry' : 'retried'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="text-slate-500 text-xs">{fmt(r.finished + 'Z')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-xs mt-2 text-slate-500">
+            <div className="table-panel">
+              <table className="tbl">
+                <thead>
+                  <tr><th>#</th><th>Script</th><th>Result</th><th className="text-right">Finished</th></tr>
+                </thead>
+                <tbody>
+                  {lastRun.results.map((r, i) => (
+                    <tr key={r.filename}>
+                      <td className="w-px font-mono text-xs text-ink-faint">{i + 1}</td>
+                      <td className="font-mono text-[13px] text-ink-secondary">{r.filename}</td>
+                      <td>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`badge ${r.status === 'SUCCESS' ? 'badge-mint' : 'badge-red'}`}>
+                            <span className="dot" />
+                            {r.status === 'SUCCESS' ? 'OK' : `FAILED (exit ${r.exit_code})`}
+                          </span>
+                          {r.retried && (
+                            <span className="badge badge-neutral"
+                              title={`Re-run at the end (${r.attempts} attempts)`}>
+                              <Icon name="refresh" size={11} />
+                              {r.status === 'SUCCESS' ? 'recovered on retry' : 'retried'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap text-right text-xs text-ink-faint">
+                        {fmt(r.finished + 'Z')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs text-ink-muted">
               Dashboard restarted: {lastRun.dashboard_restarted
-                ? <span className="text-green-400">yes ✓</span>
-                : <span className="text-slate-400">no</span>}
+                ? <span className="text-mint-300">yes</span>
+                : <span className="text-ink-faint">no</span>}
             </p>
           </>
         )}
@@ -211,37 +231,51 @@ export default function PipelineTab({ project }) {
 
       {/* Schedule the whole pipeline */}
       <div className="card">
-        <h3 className="font-semibold mb-3">Schedule the Pipeline</h3>
-        {msg && <p className={`text-sm mb-2 ${msg.includes('✓') ? 'text-green-400' : 'text-red-400'}`}>{msg}</p>}
+        <h3 className="sec-title mb-4">Schedule the Pipeline</h3>
+        {msg && (
+          <p className={`mb-3 flex items-center gap-1.5 text-sm ${msgOk ? 'text-mint-300' : 'text-red-400'}`}>
+            <Icon name={msgOk ? 'check' : 'alert'} size={14} />
+            {msg.replace(' ✓', '')}
+          </p>
+        )}
 
         {/* Current schedule status + stop/delete */}
-        <div className="flex items-center gap-3 flex-wrap mb-4 p-3 rounded-lg bg-slate-900 border border-panel-border">
+        <div className="surface mb-5 flex flex-wrap items-center gap-3">
           {scheduled ? (
             <>
-              <span className={`badge ${info.is_active ? 'bg-green-500/15 text-green-400' : 'bg-slate-500/20 text-slate-400'}`}>
-                {info.is_active ? '● Scheduled (active)' : '○ Scheduled (stopped)'}
+              <span className={`badge ${info.is_active ? 'badge-mint' : 'badge-neutral'}`}>
+                <span className={info.is_active ? 'dot-pulse' : 'dot'} />
+                {info.is_active ? 'Scheduled (active)' : 'Scheduled (stopped)'}
               </span>
-              <code className="text-sky-300 text-xs bg-slate-800 px-2 py-1 rounded">{info.cron_expression}</code>
+              <code className="rounded bg-panel-raised px-2 py-1 font-mono text-xs text-mint-300">
+                {info.cron_expression}
+              </code>
               {info.is_active && info.next_run && (
-                <span className="text-xs text-slate-500">next run: {fmt(info.next_run)}</span>
+                <span className="text-xs text-ink-faint">next run: {fmt(info.next_run)}</span>
               )}
               <div className="ml-auto flex gap-2">
                 {info.is_active ? (
-                  <button className="btn-secondary" onClick={() => setActiveState(false)}>⏸ Stop</button>
+                  <button className="btn-secondary btn-sm" onClick={() => setActiveState(false)}>
+                    <Icon name="pause" size={13} /> Stop
+                  </button>
                 ) : (
-                  <button className="btn-secondary" onClick={() => setActiveState(true)}>▶ Enable</button>
+                  <button className="btn-secondary btn-sm" onClick={() => setActiveState(true)}>
+                    <Icon name="play" size={13} /> Enable
+                  </button>
                 )}
-                <button className="btn-secondary text-red-400" onClick={deleteSchedule}>🗑 Delete</button>
+                <button className="btn-icon-danger" onClick={deleteSchedule} title="Delete schedule">
+                  <Icon name="trash" size={15} />
+                </button>
               </div>
             </>
           ) : (
-            <span className="text-sm text-slate-500">No schedule yet — set one below.</span>
+            <span className="text-sm text-ink-faint">No schedule yet — set one below.</span>
           )}
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Frequency</label>
+            <label className="label">Frequency</label>
             <select className="input" value={builder.frequency}
               onChange={(e) => setBuilder({ ...builder, frequency: e.target.value })}>
               {FREQUENCIES.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
@@ -249,21 +283,21 @@ export default function PipelineTab({ project }) {
           </div>
           {['hourly', 'daily', 'weekly'].includes(builder.frequency) && (
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Minute</label>
+              <label className="label">Minute</label>
               <input type="number" min="0" max="59" className="input" value={builder.minute}
                 onChange={(e) => setBuilder({ ...builder, minute: e.target.value })} />
             </div>
           )}
           {['daily', 'weekly'].includes(builder.frequency) && (
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Hour (0–23)</label>
+              <label className="label">Hour (0–23)</label>
               <input type="number" min="0" max="23" className="input" value={builder.hour}
                 onChange={(e) => setBuilder({ ...builder, hour: e.target.value })} />
             </div>
           )}
           {builder.frequency === 'weekly' && (
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Day of week</label>
+              <label className="label">Day of week</label>
               <select className="input" value={builder.weekday}
                 onChange={(e) => setBuilder({ ...builder, weekday: e.target.value })}>
                 {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
@@ -272,22 +306,26 @@ export default function PipelineTab({ project }) {
           )}
           {builder.frequency === 'custom' && (
             <div className="sm:col-span-2">
-              <label className="block text-sm text-slate-400 mb-1">Cron expression</label>
+              <label className="label">Cron expression</label>
               <input className="input font-mono" value={builder.custom}
                 onChange={(e) => setBuilder({ ...builder, custom: e.target.value })} placeholder="0 6 * * *" />
             </div>
           )}
         </div>
 
-        <div className="mt-3 flex items-center gap-3 flex-wrap">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-            Active
-          </label>
-          <span className="text-sm text-slate-500">cron:</span>
-          <code className="text-sky-300 bg-slate-900 px-2 py-1 rounded">{cron}</code>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setActive((v) => !v)}
+            className={`toggle ${active ? 'toggle-on' : ''}`}
+            aria-pressed={active}
+            aria-label="Schedule active"
+          />
+          <span className="text-sm text-ink-body">Active</span>
+          <span className="ml-2 text-sm text-ink-dim">cron:</span>
+          <code className="rounded bg-panel-raised px-2 py-1 font-mono text-xs text-mint-300">{cron}</code>
           {info?.next_run && (
-            <span className="text-xs text-slate-500">next run: {fmt(info.next_run)}</span>
+            <span className="text-xs text-ink-faint">next run: {fmt(info.next_run)}</span>
           )}
           <button className="btn-primary ml-auto" onClick={saveSchedule}>Save schedule</button>
         </div>

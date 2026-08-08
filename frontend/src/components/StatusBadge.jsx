@@ -1,27 +1,24 @@
-// Colored status pill for dashboard / script states.
+// Status pill for dashboard / script / service states. Every status leads with
+// a coloured dot; RUNNING pulses a mint halo to read as live.
 const STYLES = {
-  RUNNING: 'bg-green-500/15 text-green-400',
-  SUCCESS: 'bg-green-500/15 text-green-400',
-  STOPPED: 'bg-slate-500/20 text-slate-400',
-  FAILED: 'bg-red-500/15 text-red-400',
-  ERROR: 'bg-red-500/15 text-red-400',
-  UNKNOWN: 'bg-yellow-500/15 text-yellow-400',
-}
-
-const ICONS = {
-  RUNNING: '✅',
-  SUCCESS: '✅',
-  STOPPED: '🔴',
-  FAILED: '❌',
-  ERROR: '⚠️',
-  UNKNOWN: '❔',
+  RUNNING: 'badge-mint',
+  SUCCESS: 'badge-mint',
+  READY: 'badge-mint',
+  BUILDING: 'badge-amber',
+  STOPPED: 'badge-neutral',
+  MISSING: 'badge-neutral',
+  FAILED: 'badge-red',
+  ERROR: 'badge-red',
+  UNKNOWN: 'badge-amber',
 }
 
 export default function StatusBadge({ status }) {
   const key = (status || 'UNKNOWN').toUpperCase()
+  const live = key === 'RUNNING'
   return (
     <span className={`badge ${STYLES[key] || STYLES.UNKNOWN}`}>
-      {ICONS[key] || ICONS.UNKNOWN} {key}
+      <span className={live ? 'dot-pulse' : 'dot'} />
+      {key}
     </span>
   )
 }

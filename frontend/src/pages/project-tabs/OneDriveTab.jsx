@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api, { errorMessage } from '../../api/client'
+import Icon from '../../components/Icon'
+import Modal from '../../components/Modal'
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`
@@ -95,15 +97,18 @@ export default function OneDriveTab({ project }) {
   if (status && (!status.installed || !status.authorized)) {
     return (
       <div className="card">
-        <h3 className="font-semibold mb-2">☁️ OneDrive</h3>
-        <p className="text-sm text-slate-400">
+        <div className="flex items-center gap-3">
+          <span className="icon-tile tile-aqua"><Icon name="cloud" size={17} /></span>
+          <h3 className="sec-title">OneDrive</h3>
+        </div>
+        <p className="mt-3 text-sm text-ink-muted">
           {!status.installed
             ? 'The OneDrive client isn’t installed on this server yet.'
             : 'OneDrive is installed but not authorized yet.'}
         </p>
-        <p className="text-sm text-slate-400 mt-2">
+        <p className="mt-2 text-sm text-ink-muted">
           Set it up once in the{' '}
-          <Link to="/apps" className="text-sky-400 hover:underline">Apps</Link> page
+          <Link to="/apps" className="link">Apps</Link> page
           (Files &amp; Sync → OneDrive), then map a folder here.
         </p>
       </div>
@@ -114,121 +119,147 @@ export default function OneDriveTab({ project }) {
 
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div className="min-w-0">
-          <h3 className="font-semibold">☁️ OneDrive files</h3>
-          <p className="text-xs text-slate-500">
-            Mapped folder:{' '}
-            <span className="font-mono text-slate-300">
-              {listing?.mapped || '(none selected)'}
-            </span>
-            {status?.monitor && (
-              <span className="ml-2">· monitor: <span className="text-slate-300">{status.monitor}</span></span>
-            )}
-          </p>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="icon-tile tile-aqua"><Icon name="cloud" size={17} /></span>
+          <div className="min-w-0">
+            <h3 className="sec-title">OneDrive files</h3>
+            <p className="hint mt-0.5">
+              Mapped folder:{' '}
+              <span className="font-mono text-ink-secondary">{listing?.mapped || '(none selected)'}</span>
+              {status?.monitor && (
+                <span className="ml-2">· monitor: <span className="text-ink-secondary">{status.monitor}</span></span>
+              )}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary" onClick={openPicker}>📁 Change folder</button>
-          <button className="btn-secondary" onClick={syncNow}>🔄 Sync now</button>
+          <button className="btn-secondary btn-sm" onClick={openPicker}>
+            <Icon name="folder" size={13} /> Change folder
+          </button>
+          <button className="btn-secondary btn-sm" onClick={syncNow}>
+            <Icon name="refresh" size={13} /> Sync now
+          </button>
         </div>
       </div>
 
       {/* Breadcrumb within the mapped folder */}
       {listing?.mapped !== undefined && (
-        <div className="flex items-center gap-1 text-xs text-slate-400 mb-3 flex-wrap">
-          <button className="hover:text-sky-300" onClick={() => setSubpath('')}>root</button>
+        <nav className="crumbs mb-4">
+          <button className="crumb" onClick={() => setSubpath('')}>root</button>
           {crumbs.map((c, i) => (
-            <span key={i} className="flex items-center gap-1">
-              <span>/</span>
-              <button
-                className="hover:text-sky-300"
-                onClick={() => setSubpath(crumbs.slice(0, i + 1).join('/'))}
-              >{c}</button>
+            <span key={i} className="contents">
+              <Icon name="chevron-right" size={12} className="crumb-sep" />
+              {i === crumbs.length - 1 ? (
+                <span className="crumb-current">{c}</span>
+              ) : (
+                <button className="crumb" onClick={() => setSubpath(crumbs.slice(0, i + 1).join('/'))}>{c}</button>
+              )}
             </span>
           ))}
-        </div>
+        </nav>
       )}
 
       {!listing?.available ? (
-        <p className="text-center text-slate-600 py-8">
-          {listing?.mapped == null
-            ? 'No OneDrive folder mapped yet — click “Change folder”.'
-            : 'Folder not synced yet. Click “Sync now”, then refresh.'}
-        </p>
+        <div className="empty">
+          <Icon name="cloud" size={26} />
+          <p>
+            {listing?.mapped == null
+              ? 'No OneDrive folder mapped yet — click “Change folder”.'
+              : 'Folder not synced yet. Click “Sync now”, then refresh.'}
+          </p>
+        </div>
       ) : listing.entries.length === 0 ? (
-        <p className="text-center text-slate-600 py-8">This folder is empty.</p>
+        <div className="empty">
+          <Icon name="folder" size={26} />
+          <p>This folder is empty.</p>
+        </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-              <th className="py-2">Name</th>
-              <th>Size</th>
-              <th>Last modified</th>
-              <th className="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-panel-border">
-            {listing.entries.map((e) => (
-              <tr key={e.rel}>
-                <td className="py-2 font-mono">
-                  {e.is_dir ? (
-                    <button className="hover:text-sky-300" onClick={() => setSubpath(e.rel)}>
-                      📁 {e.name}
-                    </button>
-                  ) : (
-                    <span>📄 {e.name}</span>
-                  )}
-                </td>
-                <td>{e.is_dir ? '—' : formatSize(e.size)}</td>
-                <td className="text-slate-400">{formatTime(e.modified)}</td>
-                <td className="text-right">
-                  {!e.is_dir && (
-                    <button onClick={() => download(e.rel, e.name)} className="text-sky-400 hover:underline">
-                      Download
-                    </button>
-                  )}
-                </td>
+        <div className="table-panel">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Size</th>
+                <th>Last modified</th>
+                <th className="text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {listing.entries.map((e) => (
+                <tr key={e.rel}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <span className={`icon-tile ${e.is_dir ? 'tile-mint' : ''}`}>
+                        <Icon name={e.is_dir ? 'folder' : 'file'} size={16} />
+                      </span>
+                      {e.is_dir ? (
+                        <button className="truncate font-mono text-[13px] text-ink-primary
+                                           transition-colors hover:text-mint-300"
+                          onClick={() => setSubpath(e.rel)}>
+                          {e.name}
+                        </button>
+                      ) : (
+                        <span className="truncate font-mono text-[13px] text-ink-secondary">{e.name}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="text-ink-muted">{e.is_dir ? '—' : formatSize(e.size)}</td>
+                  <td className="whitespace-nowrap text-ink-muted">{formatTime(e.modified)}</td>
+                  <td className="col-actions">
+                    {!e.is_dir && (
+                      <button onClick={() => download(e.rel, e.name)} className="btn-icon" title="Download">
+                        <Icon name="download" size={15} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {msg && <p className="mt-3 text-xs text-slate-400 break-words">{msg}</p>}
+      {msg && <p className="mt-4 break-words text-xs text-ink-muted">{msg}</p>}
 
       {/* Folder picker modal */}
       {picker && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-             onClick={() => setPicker(null)}>
-          <div className="card max-w-lg w-full max-h-[80vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Pick a OneDrive folder</h3>
-              <button className="text-slate-500 hover:text-slate-300" onClick={() => setPicker(null)}>✕</button>
-            </div>
-            <p className="text-xs font-mono text-slate-400 mb-2 break-all">{picker.path || '/'}</p>
-            <div className="flex gap-2 mb-3">
+        <Modal
+          title="Pick a OneDrive folder"
+          subtitle={picker.path || '/'}
+          width="max-w-lg"
+          onClose={() => setPicker(null)}
+          footer={
+            <>
               {picker.parent != null && (
-                <button className="btn-secondary" onClick={() => browseTo(picker.parent)}>⬆ Up</button>
+                <button className="btn-secondary mr-auto" onClick={() => browseTo(picker.parent)}>
+                  <Icon name="arrow-up" size={14} /> Up
+                </button>
               )}
-              <button className="btn-primary ml-auto" onClick={() => selectFolder(picker.path)}>
-                ✓ Use this folder
+              <button className="btn-primary" onClick={() => selectFolder(picker.path)}>
+                <Icon name="check" size={14} /> Use this folder
               </button>
-            </div>
-            <ul className="divide-y divide-panel-border">
-              {picker.entries.filter((e) => e.is_dir).map((e) => (
-                <li key={e.path}>
-                  <button className="w-full text-left py-2 font-mono hover:text-sky-300"
-                          onClick={() => browseTo(e.path)}>
-                    📁 {e.name}
-                  </button>
-                </li>
-              ))}
-              {picker.entries.filter((e) => e.is_dir).length === 0 && (
-                <li className="py-2 text-slate-600 text-sm">No subfolders here.</li>
-              )}
-            </ul>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <ul className="max-h-[50vh] divide-y divide-panel-border/40 overflow-y-auto">
+            {picker.entries.filter((e) => e.is_dir).map((e) => (
+              <li key={e.path}>
+                <button
+                  className="flex w-full items-center gap-3 py-2 text-left transition-colors hover:text-mint-300"
+                  onClick={() => browseTo(e.path)}
+                >
+                  <span className="icon-tile tile-mint"><Icon name="folder" size={16} /></span>
+                  <span className="truncate font-mono text-[13px]">{e.name}</span>
+                  <Icon name="chevron-right" size={14} className="ml-auto text-ink-faint" />
+                </button>
+              </li>
+            ))}
+            {picker.entries.filter((e) => e.is_dir).length === 0 && (
+              <li className="py-6 text-center text-sm text-ink-faint">No subfolders here.</li>
+            )}
+          </ul>
+        </Modal>
       )}
     </div>
   )

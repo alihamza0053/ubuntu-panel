@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from './Icon'
 
 const MAX_ROWS = 2000 // cap rendered rows so huge sheets don't freeze the browser
 
@@ -86,25 +87,37 @@ export default function SpreadsheetModal({ entry, onClose }) {
   if (!entry) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex flex-col p-4">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="font-mono text-sm text-slate-300 truncate">📊 {entry.name}</span>
-        {error && <span className="text-xs text-red-400">{error}</span>}
-        <div className="ml-auto flex gap-2">
-          <button className="btn-secondary" onClick={download}>⬇ Download</button>
-          <button className="btn-secondary" onClick={onClose}>Close (Esc)</button>
+    <div className="fixed inset-0 z-50 flex flex-col bg-panel-ink/85 p-4 backdrop-blur-sm">
+      <div className="mb-3 flex animate-fade-up items-center gap-3 rounded-card border border-panel-border/70
+                      bg-panel-card/85 px-4 py-2.5 shadow-card">
+        <Icon name="table" size={16} className="text-aqua" />
+        <span className="truncate font-mono text-[13px] text-ink-secondary">{entry.name}</span>
+        {error && (
+          <span className="badge badge-red shrink-0">
+            <Icon name="alert" size={12} /> {error}
+          </span>
+        )}
+        <div className="ml-auto flex shrink-0 gap-2">
+          <button className="btn-secondary btn-sm" onClick={download}>
+            <Icon name="download" size={14} /> Download
+          </button>
+          <button className="btn-secondary btn-sm" onClick={onClose}>
+            Close <span className="kbd ml-1">Esc</span>
+          </button>
         </div>
       </div>
 
       {/* Sheet tabs (multi-sheet workbooks) */}
       {workbook && workbook.SheetNames.length > 1 && (
-        <div className="flex gap-1 mb-2 flex-wrap">
+        <div className="mb-3 flex flex-wrap gap-1">
           {workbook.SheetNames.map((name) => (
             <button
               key={name}
               onClick={() => setActive(name)}
-              className={`px-3 py-1 text-xs rounded ${
-                name === active ? 'bg-sky-600 text-white' : 'bg-panel-border text-slate-300'
+              className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                name === active
+                  ? 'bg-mint-500/15 text-mint-300 ring-1 ring-inset ring-mint-400/30'
+                  : 'bg-panel-raised/70 text-ink-muted hover:text-ink-secondary'
               }`}
             >
               {name}
@@ -113,18 +126,22 @@ export default function SpreadsheetModal({ entry, onClose }) {
         </div>
       )}
 
-      <div className="flex-1 border border-panel-border rounded-lg overflow-auto bg-panel-card">
+      <div className="flex-1 overflow-auto rounded-card border border-panel-border/70 bg-panel-card shadow-card">
         {loading ? (
-          <div className="h-full flex items-center justify-center text-slate-500">Loading…</div>
+          <div className="flex h-full items-center justify-center text-sm text-ink-faint">Loading…</div>
         ) : rows.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-slate-500">Empty sheet</div>
+          <div className="flex h-full items-center justify-center text-sm text-ink-faint">Empty sheet</div>
         ) : (
-          <table className="text-xs border-collapse">
-            <thead className="sticky top-0 bg-panel-card">
+          <table className="border-collapse text-xs">
+            <thead className="sticky top-0 z-10 bg-panel-card">
               <tr>
-                <th className="border border-panel-border px-2 py-1 text-slate-500 bg-panel-bg">#</th>
+                <th className="border border-panel-border/60 bg-panel-bg px-2.5 py-1.5 text-ink-faint">#</th>
                 {header.map((cell, i) => (
-                  <th key={i} className="border border-panel-border px-2 py-1 text-left font-semibold whitespace-nowrap">
+                  <th
+                    key={i}
+                    className="whitespace-nowrap border border-panel-border/60 px-2.5 py-1.5 text-left
+                               text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-dim"
+                  >
                     {String(cell)}
                   </th>
                 ))}
@@ -132,10 +149,10 @@ export default function SpreadsheetModal({ entry, onClose }) {
             </thead>
             <tbody>
               {body.map((row, r) => (
-                <tr key={r} className="hover:bg-panel-border/40">
-                  <td className="border border-panel-border px-2 py-1 text-slate-500 bg-panel-bg">{r + 1}</td>
+                <tr key={r} className="transition-colors hover:bg-mint-400/[0.04]">
+                  <td className="border border-panel-border/50 bg-panel-bg px-2.5 py-1.5 text-ink-faint">{r + 1}</td>
                   {header.map((_, c) => (
-                    <td key={c} className="border border-panel-border px-2 py-1 whitespace-nowrap">
+                    <td key={c} className="whitespace-nowrap border border-panel-border/50 px-2.5 py-1.5 text-ink-body">
                       {row[c] !== undefined && row[c] !== null ? String(row[c]) : ''}
                     </td>
                   ))}
@@ -147,7 +164,8 @@ export default function SpreadsheetModal({ entry, onClose }) {
       </div>
 
       {truncated && (
-        <p className="text-xs text-amber-400 mt-1">
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-300">
+          <Icon name="info" size={13} />
           Showing first {MAX_ROWS.toLocaleString()} rows — download the file to see all of it.
         </p>
       )}

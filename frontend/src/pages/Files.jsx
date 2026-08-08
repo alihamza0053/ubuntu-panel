@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import api, { errorMessage } from '../api/client'
 import EditorModal from '../components/EditorModal'
+import Icon from '../components/Icon'
+import PageHeader from '../components/PageHeader'
 
 const EDITABLE = ['.py', '.txt', '.json', '.yaml', '.yml', '.csv', '.md', '.html', '.htm',
   '.css', '.js', '.jsx', '.ts', '.tsx', '.php', '.sql', '.conf', '.cfg', '.ini', '.toml',
@@ -118,22 +120,40 @@ export default function Files() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">File Manager</h2>
+    <div>
+      <PageHeader
+        title="File Manager"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Files' }]}
+        lead="Browse, edit, upload and download inside the panel-managed roots under /srv."
+      />
 
       <div className="card">
         {/* Toolbar */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <button className="btn-secondary" onClick={() => browse('/opt')}>Open /opt</button>
-          <button className="btn-secondary" onClick={() => browse('')}>🏠 Roots</button>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <button className="btn-secondary btn-sm" onClick={() => browse('')}>
+            <Icon name="home" size={13} /> Roots
+          </button>
+          <button className="btn-secondary btn-sm" onClick={() => browse('/opt')}>
+            <Icon name="folder" size={13} /> /opt
+          </button>
           {data.parent !== null && (
-            <button className="btn-secondary" onClick={() => browse(data.parent)}>⬆ Up</button>
+            <button className="btn-secondary btn-sm" onClick={() => browse(data.parent)}>
+              <Icon name="arrow-up" size={13} /> Up
+            </button>
           )}
-          <span className="font-mono text-sm text-slate-400 truncate">{path || '/srv (managed roots)'}</span>
+          <span className="truncate font-mono text-[13px] text-ink-muted">
+            {path || '/srv (managed roots)'}
+          </span>
           <div className="ml-auto flex gap-2">
-            {path && <button className="btn-secondary" onClick={mkdir}>📁＋ New folder</button>}
             {path && (
-              <button className="btn-primary" onClick={() => inputRef.current?.click()}>⬆ Upload</button>
+              <button className="btn-secondary btn-sm" onClick={mkdir}>
+                <Icon name="folder-plus" size={13} /> New folder
+              </button>
+            )}
+            {path && (
+              <button className="btn-primary btn-sm" onClick={() => inputRef.current?.click()}>
+                <Icon name="upload" size={13} /> Upload
+              </button>
             )}
             <input
               ref={inputRef}
@@ -148,42 +168,75 @@ export default function Files() {
           </div>
         </div>
 
-        {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+        {error && (
+          <p className="mb-3 flex items-center gap-1.5 text-sm text-red-400">
+            <Icon name="alert" size={14} /> {error}
+          </p>
+        )}
 
         {/* Listing */}
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase text-slate-500 border-b border-panel-border">
-              <th className="py-2">Name</th>
-              <th>Size</th>
-              <th>Modified</th>
-              <th className="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-panel-border">
-            {data.entries.map((entry) => (
-              <tr key={entry.path}>
-                <td className="py-2">
-                  <button onClick={() => open(entry)} className="hover:text-sky-400">
-                    {entry.is_dir ? '📁' : isEditable(entry.name) ? '📝' : '📄'} {entry.name}
-                  </button>
-                </td>
-                <td className="text-slate-500">{entry.is_dir ? '—' : formatSize(entry.size)}</td>
-                <td className="text-slate-400 whitespace-nowrap">{formatDate(entry.modified)}</td>
-                <td className="text-right space-x-2 whitespace-nowrap">
-                  {!entry.is_dir && (
-                    <button onClick={() => download(entry)} className="text-sky-400 hover:underline">⬇</button>
-                  )}
-                  <button onClick={() => rename(entry)} className="text-slate-400 hover:underline">✎</button>
-                  <button onClick={() => remove(entry)} className="text-red-400 hover:underline">🗑</button>
-                </td>
-              </tr>
-            ))}
-            {data.entries.length === 0 && (
-              <tr><td colSpan={4} className="py-6 text-center text-slate-600">empty</td></tr>
-            )}
-          </tbody>
-        </table>
+        {data.entries.length === 0 ? (
+          <div className="empty">
+            <Icon name="folder" size={26} />
+            <p>This folder is empty.</p>
+          </div>
+        ) : (
+          <div className="table-panel">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Size</th>
+                  <th>Modified</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.entries.map((entry) => {
+                  const editable = !entry.is_dir && isEditable(entry.name)
+                  return (
+                    <tr key={entry.path}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <span className={`icon-tile ${entry.is_dir ? 'tile-mint' : editable ? 'tile-violet' : ''}`}>
+                            <Icon name={entry.is_dir ? 'folder' : editable ? 'file-text' : 'file'} size={16} />
+                          </span>
+                          <div className="min-w-0">
+                            <button onClick={() => open(entry)}
+                              className="block max-w-full truncate text-left font-mono text-[13px] text-ink-primary
+                                         transition-colors hover:text-mint-300">
+                              {entry.name}
+                            </button>
+                            <span className="text-[11px] text-ink-faint">
+                              {entry.is_dir ? 'folder' : editable ? 'editable' : 'file'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="text-ink-muted">{entry.is_dir ? '—' : formatSize(entry.size)}</td>
+                      <td className="whitespace-nowrap text-ink-muted">{formatDate(entry.modified)}</td>
+                      <td className="col-actions">
+                        <div className="inline-flex items-center gap-1">
+                          {!entry.is_dir && (
+                            <button onClick={() => download(entry)} className="btn-icon" title="Download">
+                              <Icon name="download" size={15} />
+                            </button>
+                          )}
+                          <button onClick={() => rename(entry)} className="btn-icon" title="Rename">
+                            <Icon name="edit" size={15} />
+                          </button>
+                          <button onClick={() => remove(entry)} className="btn-icon-danger" title="Delete">
+                            <Icon name="trash" size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <EditorModal

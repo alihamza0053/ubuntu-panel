@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import api, { errorMessage } from '../api/client'
+import Icon from '../components/Icon'
+import Modal from '../components/Modal'
+import PageHeader from '../components/PageHeader'
 
 /**
  * Proxies: expose any local service (a Docker container, or a uvicorn/Flask/
@@ -46,54 +49,73 @@ export default function Proxies() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Proxies</h2>
-          <p className="text-sm text-slate-500">
-            Put a domain + SSL in front of any local service (Docker container, uvicorn, Flask, Node…).
-          </p>
-        </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>＋ New Proxy</button>
-      </div>
+    <div>
+      <PageHeader
+        title="Proxies"
+        crumbs={[{ label: 'ServerHub', to: '/dashboard' }, { label: 'Proxies' }]}
+        lead="Put a domain + SSL in front of any local service (Docker container, uvicorn, Flask, Node…)."
+        actions={
+          <button className="btn-primary" onClick={() => setShowModal(true)}>
+            <Icon name="plus" size={14} /> New Proxy
+          </button>
+        }
+      />
 
       {loading ? (
-        <p className="text-slate-500">Loading…</p>
+        <p className="text-sm text-ink-faint">Loading…</p>
       ) : proxies.length === 0 ? (
-        <div className="card text-center py-12 text-slate-500">
-          No proxies yet. Run your app on a localhost port (e.g. a Docker container on
-          <span className="font-mono"> 127.0.0.1:9100</span>), then create a proxy pointing at that port.
+        <div className="empty">
+          <Icon name="shuffle" size={26} />
+          <p className="max-w-md">
+            No proxies yet. Run your app on a localhost port (e.g. a Docker container on{' '}
+            <span className="font-mono text-ink-secondary">127.0.0.1:9100</span>), then create a proxy
+            pointing at that port.
+          </p>
+          <button className="btn-primary mt-2" onClick={() => setShowModal(true)}>
+            <Icon name="plus" size={14} /> New Proxy
+          </button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {proxies.map((p) => <ProxyCard key={p.id} proxy={p} onChanged={refresh} onDelete={remove} />)}
         </div>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <form onSubmit={create} className="card w-full max-w-md space-y-3">
-            <h3 className="text-lg font-semibold">New Proxy</h3>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Name</label>
-              <input className="input" placeholder="browser-automation" value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <Modal
+          as="form"
+          onSubmit={create}
+          onClose={() => setShowModal(false)}
+          title="New Proxy"
+          subtitle="Maps a domain onto a service already listening on localhost."
+          footer={
+            <>
+              <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+              <button type="submit" className="btn-primary">Create proxy</button>
+            </>
+          }
+        >
+          {error && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5
+                            text-sm text-red-300">
+              <Icon name="alert" size={15} className="mt-0.5" />
+              <span>{error}</span>
             </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">Local port (127.0.0.1)</label>
-              <input className="input" type="number" placeholder="9100" value={form.upstream_port}
-                onChange={(e) => setForm({ ...form, upstream_port: e.target.value })} required />
-              <p className="text-xs text-slate-500 mt-1">
-                The port your service listens on locally. Bind your app to 127.0.0.1, not 0.0.0.0.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button type="submit" className="btn-primary">Create</button>
-            </div>
-          </form>
-        </div>
+          )}
+          <div>
+            <label className="label">Name</label>
+            <input className="input font-mono" placeholder="browser-automation" value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus required />
+          </div>
+          <div>
+            <label className="label">Local port (127.0.0.1)</label>
+            <input className="input font-mono" type="number" placeholder="9100" value={form.upstream_port}
+              onChange={(e) => setForm({ ...form, upstream_port: e.target.value })} required />
+            <p className="hint mt-1.5">
+              The port your service listens on locally. Bind your app to 127.0.0.1, not 0.0.0.0.
+            </p>
+          </div>
+        </Modal>
       )}
     </div>
   )
@@ -125,46 +147,55 @@ function ProxyCard({ proxy, onChanged, onDelete }) {
   }
 
   return (
-    <div className="card space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-semibold truncate">🔀 {proxy.name}</span>
-        <span className={`badge ${proxy.live ? 'bg-green-500/15 text-green-400' : 'bg-slate-500/15 text-slate-400'}`}>
+    <div className="card card-hover space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="icon-tile tile-aqua"><Icon name="shuffle" size={18} /></span>
+          <span className="truncate text-base font-semibold text-ink-primary">{proxy.name}</span>
+        </div>
+        <span className={`badge ${proxy.live ? 'badge-mint' : 'badge-neutral'}`}>
+          <span className={proxy.live ? 'dot-pulse' : 'dot'} />
           {proxy.live ? 'service up' : 'no service'}
         </span>
       </div>
 
-      <dl className="space-y-1.5 text-sm">
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Upstream</dt>
-          <dd className="font-mono text-slate-300">127.0.0.1:{proxy.upstream_port}</dd>
+      <dl className="space-y-2 text-sm">
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-dim">Upstream</dt>
+          <dd className="font-mono text-[13px] text-ink-body">127.0.0.1:{proxy.upstream_port}</dd>
         </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">URL</dt>
-          <dd className="text-right">
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-dim">URL</dt>
+          <dd className="min-w-0 truncate text-right">
             {proxy.domain ? (
               <a href={`http://${proxy.domain}`} target="_blank" rel="noreferrer"
-                 className="text-sky-400 hover:underline">{proxy.domain} ↗</a>
-            ) : <span className="text-slate-500">no domain yet</span>}
+                 className="link inline-flex items-center gap-1">
+                {proxy.domain} <Icon name="external-link" size={12} />
+              </a>
+            ) : <span className="text-ink-faint">no domain yet</span>}
           </dd>
         </div>
       </dl>
 
-      <div className="flex gap-2 items-center flex-wrap">
-        <input className="input max-w-[12rem] py-1" placeholder="app.example.com"
+      <div className="flex flex-wrap items-center gap-2">
+        <input className="input max-w-[11rem] py-1.5 text-[13px]" placeholder="app.example.com"
           value={domain} onChange={(e) => setDomain(e.target.value)} />
-        <button className="btn-secondary" onClick={assignDomain} disabled={!domain}>Domain</button>
-        <button className="btn-secondary" onClick={requestSsl} disabled={!proxy.domain}>🔒 SSL</button>
+        <button className="btn-secondary btn-sm" onClick={assignDomain} disabled={!domain}>Domain</button>
+        <button className="btn-secondary btn-sm" onClick={requestSsl} disabled={!proxy.domain}>
+          <Icon name="lock" size={13} /> SSL
+        </button>
       </div>
 
       {!proxy.live && (
-        <p className="text-xs text-yellow-500/80">
+        <p className="flex items-start gap-1.5 text-xs text-amber-300/90">
+          <Icon name="alert" size={13} className="mt-0.5" />
           Nothing is listening on this port yet — start your service first, or it’ll return 502.
         </p>
       )}
-      {msg && <p className="text-xs text-slate-400 break-words">{msg}</p>}
+      {msg && <p className="break-words text-xs text-ink-muted">{msg}</p>}
 
-      <div className="text-right">
-        <button onClick={() => onDelete(proxy)} className="text-xs text-red-400 hover:underline">remove</button>
+      <div className="flex justify-end border-t border-panel-border/50 pt-3">
+        <button onClick={() => onDelete(proxy)} className="act-danger">remove</button>
       </div>
     </div>
   )
