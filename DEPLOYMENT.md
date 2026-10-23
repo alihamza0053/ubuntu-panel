@@ -184,16 +184,21 @@ Why these packages:
 - `python3-pip` — installs Python packages
 - `python3-dev` + `build-essential` — compile C extensions (bcrypt, etc.)
 
-### 2.2 — Node.js 20 (to build the React frontend)
+### 2.2 — Node.js 24 LTS (to build the React frontend)
 
-Ubuntu's default Node is too old. Install Node 20 from NodeSource:
+Ubuntu's default Node is too old. Install Node 24 LTS from NodeSource:
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
-node --version    # expect v20.x
-npm --version     # expect 10.x
+node --version    # expect v24.22.1 or later
+npm --version     # expect 11.x
 ```
+
+> **Security minimums (Oct 2026 Node.js release):** 22.23.4+, 24.22.1+ or
+> 26.12.1+. Node 20 and older are end-of-life and get no fix — don't use them.
+> `deploy/install.sh` and `deploy/update.sh` upgrade an unpatched Node to 24 LTS
+> automatically.
 
 ### 2.3 — Nginx (reverse proxy + website hosting)
 

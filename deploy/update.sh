@@ -85,6 +85,23 @@ if [ "$DO_BACKEND" = true ]; then
   "$PANEL_ROOT/venv/bin/pip" install -q -r "$PANEL_ROOT/backend/requirements.txt"
 fi
 
+# 3b. Node.js security floor — upgrade servers installed with an unpatched or
+# EOL Node (Oct 2026 fixes: 22.23.4+, 24.22.1+, 26.12.1+; Node 20 and older get none)
+node_is_patched() {
+  command -v node >/dev/null || return 1
+  node -e '
+    const [ma, mi, pa] = process.versions.node.split(".").map(Number);
+    const min = { 22: [23, 4], 24: [22, 1], 26: [12, 1] }[ma];
+    process.exit(ma > 26 || (min && (mi > min[0] || (mi === min[0] && pa >= min[1]))) ? 0 : 1);
+  '
+}
+if ! node_is_patched; then
+  echo "==> Upgrading Node.js to 24 LTS (installed: $(node --version 2>/dev/null || echo none))"
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+  apt-get install -y nodejs
+  node --version
+fi
+
 # 4. Frontend
 if [ "$DO_FRONTEND" = true ]; then
   echo "==> Rebuilding frontend"

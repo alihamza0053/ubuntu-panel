@@ -38,12 +38,23 @@ if ! command -v google-chrome >/dev/null; then
 fi
 google-chrome --version || true
 
-# Node 18+ for building the frontend (skipped if node >= 18 already present)
-if ! command -v node >/dev/null || [ "$(node -e 'console.log(process.versions.node.split(".")[0])')" -lt 18 ]; then
-  echo "==> Installing Node.js 20"
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+# Node.js for building the frontend. Skipped only if the installed Node already
+# has the Oct 2026 security fixes (22.23.4+, 24.22.1+, 26.12.1+, or a newer
+# major); anything else, including EOL Node 20 and older, is moved to Node 24 LTS.
+node_is_patched() {
+  command -v node >/dev/null || return 1
+  node -e '
+    const [ma, mi, pa] = process.versions.node.split(".").map(Number);
+    const min = { 22: [23, 4], 24: [22, 1], 26: [12, 1] }[ma];
+    process.exit(ma > 26 || (min && (mi > min[0] || (mi === min[0] && pa >= min[1]))) ? 0 : 1);
+  '
+}
+if ! node_is_patched; then
+  echo "==> Installing Node.js 24 LTS"
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
   apt-get install -y nodejs
 fi
+node --version
 
 echo "==> Creating panel user and directories"
 id -u "$PANEL_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /bin/bash "$PANEL_USER"
