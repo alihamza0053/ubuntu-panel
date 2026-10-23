@@ -144,6 +144,20 @@ def react_block(domain: str, folder: str) -> str:
 """
 
 
+def php_fpm_socket() -> str:
+    """FPM socket of the installed PHP (php8.1 on Ubuntu 22.04, php8.3 on 24.04, ...)."""
+    run = Path("/run/php")
+    # Debian/Ubuntu keep this alternative pointed at the default PHP version
+    generic = run / "php-fpm.sock"
+    if generic.exists():
+        return str(generic)
+    versioned = sorted(
+        run.glob("php*-fpm.sock"),
+        key=lambda p: tuple(int(n) for n in p.name[3:-len("-fpm.sock")].split(".") if n.isdigit()),
+    )
+    return str(versioned[-1]) if versioned else str(generic)
+
+
 def php_block(domain: str, folder: str) -> str:
     return f"""server {{
     listen 80;
@@ -153,7 +167,7 @@ def php_block(domain: str, folder: str) -> str:
     location / {{ try_files $uri $uri/ =404; }}
     location ~ \\.php$ {{
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_pass unix:{php_fpm_socket()};
     }}
 }}
 """

@@ -261,22 +261,23 @@ ls /run/php/
 php -v
 ```
 
-> ⚠️ **PHP socket version must match the nginx template.** ServerHub's generated
-> PHP site config points at `unix:/var/run/php/php8.1-fpm.sock`. If your server
-> installed a **different** version (e.g. `php8.3` on Ubuntu 24.04), you have two
-> options:
+> **PHP socket:** ServerHub detects the installed PHP-FPM socket when it
+> generates a PHP site's nginx config, so both 22.04 (php8.1) and 24.04 (php8.3)
+> work. Sites created by older panel versions point at `php8.1-fpm.sock`; on
+> 24.04 open **Nginx → Edit** on that config, change it to `php-fpm.sock`, and
+> **Save** (it reloads nginx).
 >
-> **Option 1 (simplest):** install PHP 8.1 explicitly so the socket matches:
+> 🔒 **Security (Oct 2026, "php2shell" CVE-2026-109618 / CVE-2026-109619):**
+> critical remote code execution, exploited in the wild. Ubuntu backports the
+> fix without changing `php -v`, so check the **package** version:
 > ```bash
-> sudo add-apt-repository -y ppa:ondrej/php
-> sudo apt update
-> sudo apt install -y php8.3-fpm
-> sudo systemctl enable --now php8.3-fpm
+> dpkg -l 'php8*' | grep fpm
+> # fixed: 24.04 → 8.3.6-0ubuntu0.24.04.13 or later
+> #        22.04 → 8.1.2-1ubuntu2.28 or later
 > ```
->
-> **Option 2:** after you assign a domain to a PHP site in the panel, open
-> **Nginx → Edit** on that config and change `php8.1-fpm.sock` to your actual
-> version (e.g. `php8.3-fpm.sock`), then **Save** (it reloads nginx).
+> `deploy/update.sh` upgrades the PHP packages and restarts PHP-FPM for you. By
+> hand: `sudo apt update && sudo apt install --only-upgrade 'php8*' && sudo systemctl restart 'php*-fpm'`.
+> PPA builds (ondrej/php) need upstream 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 or later.
 >
 > If you only host React/HTML sites and Python projects, you can skip PHP-FPM
 > entirely.

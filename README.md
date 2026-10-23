@@ -45,6 +45,8 @@ Already have a clone? `sudo bash deploy/install.sh` does the same thing.
 
 - **`DEPLOYMENT.md`** — install from zero on a fresh Ubuntu VPS (every dependency).
 - **`UPDATING.md`** — push code changes to an installed panel (`deploy/update.sh`).
+- **`UNINSTALLING.md`** — remove the panel and everything it deployed, with a
+  backup step first.
 - **`DASHBOARD_GUIDE.md`** — deploy Streamlit dashboards + fix every common issue
   (per-project venv, spawn errors, `.xls`/`xlrd`, missing modules).
 - **`SCRIPTS_GUIDE.md`** — run Python/Selenium scripts (headless Chrome, scheduling).

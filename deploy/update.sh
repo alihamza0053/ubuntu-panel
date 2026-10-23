@@ -105,6 +105,20 @@ if ! node_is_patched; then
   node --version
 fi
 
+# 3c. PHP security updates (Oct 2026 "php2shell", CVE-2026-109618/109619 —
+# Ubuntu USN-8948). Upgrade the installed php packages to Ubuntu's patched builds
+# and restart FPM, since running workers keep the old code until restarted.
+PHP_PKGS="$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'php*' 2>/dev/null | awk '$1=="ii"{print $2}')"
+if [ -n "$PHP_PKGS" ]; then
+  echo "==> Applying PHP security updates"
+  apt-get update -qq
+  # shellcheck disable=SC2086
+  apt-get install -y --only-upgrade $PHP_PKGS
+  for svc in $(systemctl list-units --type=service --all --plain --no-legend 'php*-fpm.service' | awk '{print $1}'); do
+    systemctl restart "$svc"
+  done
+fi
+
 # 4. Frontend
 if [ "$DO_FRONTEND" = true ]; then
   echo "==> Rebuilding frontend"
