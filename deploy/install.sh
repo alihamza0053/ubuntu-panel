@@ -68,10 +68,12 @@ cp -r "$REPO_DIR/frontend" "$PANEL_ROOT/"
 echo "==> Python virtualenv + dependencies (using $PYTHON3)"
 "$PYTHON3" -m venv "$PANEL_ROOT/venv"
 "$PANEL_ROOT/venv/bin/pip" install --upgrade pip
-"$PANEL_ROOT/venv/bin/pip" install -r "$PANEL_ROOT/backend/requirements.txt"
 # Streamlit runs project dashboards; selenium + webdriver-manager + openpyxl
 # are commonly needed by project scripts (headless Chromium, Excel data).
-"$PANEL_ROOT/venv/bin/pip" install streamlit selenium webdriver-manager openpyxl pandas
+# One resolve with the panel's requirements, so pip picks versions of these that
+# can't upgrade the panel's own pins (e.g. starlette) out from under it.
+"$PANEL_ROOT/venv/bin/pip" install -r "$PANEL_ROOT/backend/requirements.txt" \
+  streamlit selenium webdriver-manager openpyxl pandas
 
 echo "==> Building frontend"
 cd "$PANEL_ROOT/frontend"

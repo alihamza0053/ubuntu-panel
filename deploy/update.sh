@@ -82,7 +82,10 @@ if [ "$DO_BACKEND" = true ]; then
     "$SRC/backend/" "$PANEL_ROOT/backend/"
 
   echo "==> Updating Python dependencies"
-  "$PANEL_ROOT/venv/bin/pip" install -q -r "$PANEL_ROOT/backend/requirements.txt"
+  # Same single resolve as install.sh, so the dashboard/script runtimes stay
+  # compatible with the panel's pinned packages (and broken venvs get repaired).
+  "$PANEL_ROOT/venv/bin/pip" install -q -r "$PANEL_ROOT/backend/requirements.txt" \
+    streamlit selenium webdriver-manager openpyxl pandas
 fi
 
 # 3b. Node.js security floor — upgrade servers installed with an unpatched or

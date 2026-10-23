@@ -1,5 +1,8 @@
 # ServerHub backend dependencies (Python 3.11+)
 fastapi==0.115.6
+# Pinned explicitly: newer packages in the same venv (e.g. streamlit) can pull
+# starlette 1.x, which crashes this FastAPI ("unexpected keyword 'on_startup'").
+starlette>=0.40.0,<0.42.0
 uvicorn[standard]==0.34.0
 sqlalchemy>=2.0.43,<2.1
 python-jose[cryptography]==3.3.0
