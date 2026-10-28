@@ -14,6 +14,42 @@ Run every command as a sudo user. Paths assume the default install
 
 ---
 
+## Quick: one command
+
+```bash
+sudo bash /opt/serverhub-src/deploy/uninstall.sh
+```
+
+No source checkout on the server any more? Run it straight from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alihamza0053/ubuntu-panel/main/deploy/uninstall.sh | sudo bash
+```
+
+It lists everything it will delete and only continues after you type
+**`DELETE`**. Then it:
+
+1. backs up the panel database, `.env`, panel backups, projects, websites and a
+   dump of all MySQL databases to `/root/serverhub-final-backup-<date>/`
+   (Docker volume data is **not** included — export it first, see step 0);
+2. does steps 1–4, 6 and 7 below: stops the panel and its dashboards, removes
+   Docker apps with their volumes, panel nginx sites and their SSL
+   certificates, the sudo rules, the `serverhub`/`xfcedesk` users and all
+   panel files.
+
+It leaves alone anything other software may use: system packages, MySQL
+databases, nginx sites the panel didn't create, ufw rules and Cloudflare
+tunnels. Remove those by hand with steps 5, 8 and 9 if nothing else needs them.
+
+Options: `--yes` skips the prompt, `--no-backup` skips the backup.
+
+> Run it over **SSH or the server console**, not the panel's own Terminal page:
+> the panel stops partway through, which would end that terminal session.
+
+The steps below do the same thing by hand.
+
+---
+
 ## What gets removed
 
 | Area | Location |
